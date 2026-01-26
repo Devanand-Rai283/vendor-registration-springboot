@@ -1,26 +1,41 @@
-📌 Project Overview
+🚀 Vendor Registration System
 
-The Vendor Registration System is a backend web application developed using Spring Boot.
-It provides REST APIs to register, view, update, and delete vendor details.
+Spring Boot | PostgreSQL | Docker | Render | REST API
 
-The project was initially developed and tested locally using MySQL / H2, then later migrated to PostgreSQL and deployed on Render Cloud using Docker.
+A production-ready backend application built using Spring Boot that provides RESTful APIs for vendor registration and management.
+The project demonstrates end-to-end backend development, from local setup to cloud deployment with Docker and PostgreSQL.
 
-This project demonstrates:
+📌 Key Highlights
 
-Clean layered architecture
+Clean layered architecture (Controller → Service → Repository)
 
-Database migration (MySQL → PostgreSQL)
+RESTful API design using Spring Boot
 
-Cloud deployment using Docker
+Database migration: Local DB → PostgreSQL (Cloud)
 
-Environment-based configuration (industry standard)
+Secure configuration using environment variables
 
+Fully Dockerized application
 
+Deployed on Render Cloud
 
+Industry-standard practices followed
 
+🧠 Problem Statement
 
+To design and deploy a backend system that allows vendors to:
 
-🏗️ Tech Stack
+Register themselves
+
+View vendor records
+
+Update vendor details
+
+Delete vendor records
+
+The system must be scalable, secure, and cloud-deployable.
+
+🛠️ Tech Stack
 Backend
 
 Java 17
@@ -29,52 +44,39 @@ Spring Boot
 
 Spring Data JPA
 
-Hibernate
+Hibernate ORM
 
 Database
 
-MySQL (local development – initial phase)
+MySQL / H2 (local development – initial phase)
 
-PostgreSQL (cloud database on Render)
+PostgreSQL (production database on Render)
 
+DevOps & Tools
 
+IntelliJ IDEA – Development IDE
 
+Maven – Build & dependency management
 
+Docker – Containerization
 
+Render – Cloud hosting
 
-Tools & Platforms
-
-IntelliJ IDEA – IDE
-
-Maven – build tool
-
-Docker – containerization
-
-Render – cloud deployment
-
-GitHub – version control
+Git & GitHub – Version control
 
 Postman – API testing
 
+🧱 Project Architecture
+Controller  →  Service  →  Repository  →  Database
 
+Layer Responsibilities
 
+Controller – Handles HTTP requests & responses
 
+Service – Business logic & validation
 
-🧠 Architecture Explanation
+Repository – Database access via JPA
 
-The project follows a layered architecture:
+Entity – Database table mapping
 
-Controller Layer
-Handles HTTP requests and responses (REST APIs).
-
-Service Layer
-Contains business logic and validation.
-
-Repository Layer
-Communicates with the database using Spring Data JPA.
-
-Entity Layer
-Maps Java objects to database tables using JPA annotations.
-
-Exception Layer
-Centralized exception handling using @RestControllerAdvice.
+Exception Layer – Centralized error handling
