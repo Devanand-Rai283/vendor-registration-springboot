@@ -15,6 +15,11 @@ Cloud deployment using Docker
 
 Environment-based configuration (industry standard)
 
+
+
+
+
+
 🏗️ Tech Stack
 Backend
 
@@ -32,6 +37,11 @@ MySQL (local development – initial phase)
 
 PostgreSQL (cloud database on Render)
 
+
+
+
+
+
 Tools & Platforms
 
 IntelliJ IDEA – IDE
@@ -46,36 +56,9 @@ GitHub – version control
 
 Postman – API testing
 
-📂 Project Structure
-vendor-registration-system
-│
-├── Dockerfile
-├── pom.xml
-├── README.md
-│
-├── src/main/java/com/example/vendor
-│   ├── VendorRegistrationApplication.java
-│   │
-│   ├── controller
-│   │   └── VendorController.java
-│   │
-│   ├── service
-│   │   ├── VendorService.java
-│   │   └── impl
-│   │       └── VendorServiceImpl.java
-│   │
-│   ├── repository
-│   │   └── VendorRepository.java
-│   │
-│   ├── entity
-│   │   └── Vendor.java
-│   │
-│   └── exception
-│       ├── VendorNotFoundException.java
-│       └── GlobalExceptionHandler.java
-│
-└── src/main/resources
-    └── application.properties
+
+
+
 
 🧠 Architecture Explanation
 
