@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Vendor Registration</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+        }
+        .container {
+            width: 400px;
+            margin: 50px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        input, button {
+            width: 100%;
+            margin-top: 10px;
+            padding: 8px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        h2 {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Vendor Registration</h2>
+
+    <input type="text" id="name" placeholder="Name">
+    <input type="number" id="age" placeholder="Age">
+    <input type="text" id="gender" placeholder="Gender">
+    <input type="text" id="education" placeholder="Education">
+    <input type="text" id="contactNumber" placeholder="Contact Number">
+    <input type="email" id="email" placeholder="Email">
+    <input type="text" id="stallLocation" placeholder="Stall Location">
+    <input type="text" id="foodType" placeholder="Food Type">
+
+    <label>
+        <input type="checkbox" id="hygieneCertified"> Hygiene Certified
+    </label>
+
+    <button onclick="registerVendor()">Register</button>
+</div>
+
+<script>
+    function registerVendor() {
+        const vendor = {
+            name: document.getElementById("name").value,
+            age: parseInt(document.getElementById("age").value),
+            gender: document.getElementById("gender").value,
+            education: document.getElementById("education").value,
+            contactNumber: document.getElementById("contactNumber").value,
+            email: document.getElementById("email").value,
+            stallLocation: document.getElementById("stallLocation").value,
+            foodType: document.getElementById("foodType").value,
+            hygieneCertified: document.getElementById("hygieneCertified").checked
+        };
+
+        fetch("/api/vendors", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(vendor)
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert("Vendor registered successfully!\nVendor Code: " + data.vendorCode);
+        })
+        .catch(error => {
+            alert("Error registering vendor");
+            console.error(error);
+        });
+    }
+</script>
+
+</body>
+</html>
