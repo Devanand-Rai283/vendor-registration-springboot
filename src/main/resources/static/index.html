@@ -1,89 +1,1202 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Vendor Registration</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vendor Registration Portal</title>
+
+    <!-- Google Fonts — loaded async to avoid render-blocking -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+            href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap"
+            rel="stylesheet"
+    />
+
     <style>
+        /* ── CSS Custom Properties ─────────────────────────────────── */
+        :root {
+          --c-bg:          #f0f4f8;
+          --c-surface:     #ffffff;
+          --c-hero-bg:     #0f2744;
+          --c-hero-mid:    #163356;
+          --c-teal:        #0d9488;
+          --c-teal-lt:     #ccfbf1;
+          --c-amber:       #f59e0b;
+          --c-amber-lt:    #fef3c7;
+          --c-slate:       #334155;
+          --c-muted:       #64748b;
+          --c-border:      #cbd5e1;
+          --c-err:         #ef4444;
+          --c-err-bg:      #fef2f2;
+          --c-success:     #10b981;
+          --c-success-bg:  #ecfdf5;
+          --c-text:        #1e293b;
+
+          --radius-sm:     6px;
+          --radius:        12px;
+          --radius-lg:     20px;
+
+          --shadow-card:   0 4px 6px -1px rgba(0,0,0,.07),
+                           0 2px 4px -2px rgba(0,0,0,.06);
+          --shadow-focus:  0 0 0 3px rgba(13,148,136,.35);
+
+          --font-head:     'Sora', sans-serif;
+          --font-body:     'DM Sans', sans-serif;
+
+          --transition:    .18s cubic-bezier(.4,0,.2,1);
+        }
+
+        /* ── Reset & Base ──────────────────────────────────────────── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html { font-size: 16px; scroll-behavior: smooth; }
+
         body {
-            font-family: Arial, sans-serif;
-            background: #f4f4f4;
+          min-height: 100vh;
+          background: var(--c-bg);
+          font-family: var(--font-body);
+          color: var(--c-text);
+          display: flex;
+          align-items: stretch;
         }
-        .container {
-            width: 400px;
-            margin: 50px auto;
-            background: white;
-            padding: 20px;
-            border-radius: 5px;
+
+        /* ── Page Shell ────────────────────────────────────────────── */
+        .page {
+          display: grid;
+          grid-template-columns: 420px 1fr;
+          width: 100%;
+          min-height: 100vh;
         }
-        input, button {
-            width: 100%;
-            margin-top: 10px;
-            padding: 8px;
+
+        /* ── Hero Panel ────────────────────────────────────────────── */
+        .hero {
+          background: var(--c-hero-bg);
+          position: relative;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          padding: 3rem 2.5rem;
+          color: #fff;
         }
-        button {
-            background: #4CAF50;
-            color: white;
-            border: none;
-            cursor: pointer;
+
+        /* Geometric background layers */
+        .hero::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background:
+            radial-gradient(ellipse 60% 50% at 80% 20%, rgba(13,148,136,.25) 0%, transparent 60%),
+            radial-gradient(ellipse 40% 60% at 10% 80%, rgba(245,158,11,.12) 0%, transparent 55%);
+          pointer-events: none;
         }
-        button:hover {
-            background: #45a049;
+
+        .hero__tag {
+          display: inline-flex;
+          align-items: center;
+          gap: .45rem;
+          background: rgba(13,148,136,.18);
+          border: 1px solid rgba(13,148,136,.4);
+          color: #5eead4;
+          font-size: .72rem;
+          font-weight: 600;
+          letter-spacing: .1em;
+          text-transform: uppercase;
+          padding: .3rem .75rem;
+          border-radius: 99px;
+          width: fit-content;
+          margin-bottom: 1.5rem;
         }
-        h2 {
-            text-align: center;
+
+        .hero__title {
+          font-family: var(--font-head);
+          font-size: clamp(1.6rem, 3vw, 2.2rem);
+          font-weight: 800;
+          line-height: 1.2;
+          margin-bottom: 1rem;
+          letter-spacing: -.02em;
+        }
+
+        .hero__title span { color: var(--c-amber); }
+
+        .hero__desc {
+          font-size: .9rem;
+          line-height: 1.7;
+          color: #94a3b8;
+          max-width: 320px;
+          margin-bottom: 2.5rem;
+        }
+
+        /* SVG vendor cart illustration */
+        .hero__illustration {
+          width: 100%;
+          max-width: 300px;
+          margin: 0 auto;
+          animation: float 4s ease-in-out infinite;
+        }
+
+        @keyframes float {
+          0%,100% { transform: translateY(0); }
+          50%      { transform: translateY(-10px); }
+        }
+
+        /* Floating badge chips */
+        .badge-chips {
+          display: flex;
+          flex-wrap: wrap;
+          gap: .5rem;
+          margin-top: 2rem;
+        }
+
+        .chip {
+          display: inline-flex;
+          align-items: center;
+          gap: .35rem;
+          background: rgba(255,255,255,.07);
+          border: 1px solid rgba(255,255,255,.12);
+          color: #cbd5e1;
+          font-size: .75rem;
+          padding: .28rem .7rem;
+          border-radius: 99px;
+        }
+
+        .chip svg { width: 12px; height: 12px; color: var(--c-amber); }
+
+        /* ── Form Panel ────────────────────────────────────────────── */
+        .form-panel {
+          display: flex;
+          flex-direction: column;
+          overflow-y: auto;
+          padding: 2.5rem 3rem;
+          background: var(--c-bg);
+        }
+
+        .form-header {
+          margin-bottom: 2rem;
+        }
+
+        .form-header__eyebrow {
+          font-size: .72rem;
+          font-weight: 600;
+          letter-spacing: .1em;
+          text-transform: uppercase;
+          color: var(--c-teal);
+          margin-bottom: .4rem;
+        }
+
+        .form-header__title {
+          font-family: var(--font-head);
+          font-size: clamp(1.3rem, 2.5vw, 1.7rem);
+          font-weight: 700;
+          color: var(--c-text);
+          letter-spacing: -.02em;
+        }
+
+        .form-header__sub {
+          font-size: .85rem;
+          color: var(--c-muted);
+          margin-top: .35rem;
+        }
+
+        /* ── Card ──────────────────────────────────────────────────── */
+        .card {
+          background: var(--c-surface);
+          border-radius: var(--radius-lg);
+          box-shadow: var(--shadow-card);
+          padding: 2rem 2rem;
+          margin-bottom: 1.25rem;
+        }
+
+        .section-label {
+          display: flex;
+          align-items: center;
+          gap: .6rem;
+          font-family: var(--font-head);
+          font-size: .8rem;
+          font-weight: 700;
+          letter-spacing: .08em;
+          text-transform: uppercase;
+          color: var(--c-muted);
+          margin-bottom: 1.25rem;
+        }
+
+        .section-label::after {
+          content: '';
+          flex: 1;
+          height: 1px;
+          background: var(--c-border);
+        }
+
+        /* ── Field Grid ────────────────────────────────────────────── */
+        .field-grid {
+          display: grid;
+          gap: 1.1rem;
+        }
+
+        .field-grid--2 { grid-template-columns: 1fr 1fr; }
+        .field-grid--3 { grid-template-columns: 1fr 1fr 1fr; }
+
+        /* ── Floating-Label Field ──────────────────────────────────── */
+        .field {
+          position: relative;
+        }
+
+        .field label {
+          display: block;
+          font-size: .78rem;
+          font-weight: 600;
+          color: var(--c-slate);
+          margin-bottom: .35rem;
+        }
+
+        .field label .req {
+          color: var(--c-err);
+          margin-left: .15rem;
+        }
+
+        /* Input / Select shared styles */
+        .field input,
+        .field select,
+        .field textarea {
+          width: 100%;
+          height: 44px;
+          padding: 0 .9rem;
+          font-family: var(--font-body);
+          font-size: .88rem;
+          color: var(--c-text);
+          background: var(--c-bg);
+          border: 1.5px solid var(--c-border);
+          border-radius: var(--radius);
+          outline: none;
+          transition: border-color var(--transition), box-shadow var(--transition),
+                      background var(--transition);
+          appearance: none;
+          -webkit-appearance: none;
+        }
+
+        .field select {
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right .75rem center;
+          padding-right: 2.2rem;
+          cursor: pointer;
+        }
+
+        .field input:focus,
+        .field select:focus {
+          border-color: var(--c-teal);
+          background: #fff;
+          box-shadow: var(--shadow-focus);
+        }
+
+        .field input::placeholder { color: #a0aec0; font-size: .85rem; }
+
+        /* Error state */
+        .field.is-error input,
+        .field.is-error select {
+          border-color: var(--c-err);
+          background: var(--c-err-bg);
+        }
+
+        .field__error {
+          display: none;
+          font-size: .72rem;
+          color: var(--c-err);
+          margin-top: .28rem;
+          font-weight: 500;
+        }
+
+        .field.is-error .field__error { display: block; }
+
+        /* ── Custom Toggle (Hygiene Certified) ─────────────────────── */
+        .toggle-field {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 1rem;
+          background: var(--c-bg);
+          border: 1.5px solid var(--c-border);
+          border-radius: var(--radius);
+          padding: .65rem 1rem;
+          cursor: pointer;
+          transition: border-color var(--transition);
+        }
+
+        .toggle-field:hover { border-color: var(--c-teal); }
+
+        .toggle-field__info { flex: 1; }
+
+        .toggle-field__label {
+          font-size: .88rem;
+          font-weight: 600;
+          color: var(--c-text);
+        }
+
+        .toggle-field__hint {
+          font-size: .75rem;
+          color: var(--c-muted);
+          margin-top: .12rem;
+        }
+
+        /* The actual pill toggle */
+        .toggle-track {
+          position: relative;
+          width: 44px;
+          height: 24px;
+          border-radius: 99px;
+          background: var(--c-border);
+          transition: background var(--transition);
+          flex-shrink: 0;
+        }
+
+        .toggle-thumb {
+          position: absolute;
+          top: 3px;
+          left: 3px;
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: #fff;
+          box-shadow: 0 1px 3px rgba(0,0,0,.2);
+          transition: transform var(--transition);
+        }
+
+        /* Hidden real checkbox drives state */
+        #hygieneCertified { display: none; }
+
+        #hygieneCertified:checked ~ .toggle-track {
+          background: var(--c-teal);
+        }
+
+        #hygieneCertified:checked ~ .toggle-track .toggle-thumb {
+          transform: translateX(20px);
+        }
+
+        /* ── Submit Button ──────────────────────────────────────────── */
+        .btn-submit {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: .6rem;
+          width: 100%;
+          height: 50px;
+          background: var(--c-teal);
+          color: #fff;
+          font-family: var(--font-head);
+          font-size: .95rem;
+          font-weight: 700;
+          letter-spacing: .02em;
+          border: none;
+          border-radius: var(--radius);
+          cursor: pointer;
+          transition: background var(--transition), transform var(--transition),
+                      box-shadow var(--transition);
+          margin-top: .5rem;
+        }
+
+        .btn-submit:hover:not(:disabled) {
+          background: #0f766e;
+          box-shadow: 0 4px 14px rgba(13,148,136,.4);
+          transform: translateY(-1px);
+        }
+
+        .btn-submit:active:not(:disabled) { transform: translateY(0); }
+
+        .btn-submit:disabled {
+          opacity: .7;
+          cursor: not-allowed;
+        }
+
+        /* Spinner */
+        .spinner {
+          width: 18px;
+          height: 18px;
+          border: 2.5px solid rgba(255,255,255,.35);
+          border-top-color: #fff;
+          border-radius: 50%;
+          animation: spin .7s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Error Banner ──────────────────────────────────────────── */
+        .error-banner {
+          display: none;
+          align-items: flex-start;
+          gap: .75rem;
+          background: var(--c-err-bg);
+          border: 1.5px solid #fca5a5;
+          border-radius: var(--radius);
+          padding: .85rem 1rem;
+          margin-bottom: 1rem;
+        }
+
+        .error-banner.is-visible { display: flex; }
+
+        .error-banner svg { flex-shrink: 0; margin-top: 2px; }
+
+        .error-banner__text {
+          font-size: .84rem;
+          color: #b91c1c;
+          line-height: 1.5;
+        }
+
+        /* ── Success Card ──────────────────────────────────────────── */
+        .success-card {
+          display: none;
+          flex-direction: column;
+          align-items: center;
+          background: var(--c-surface);
+          border-radius: var(--radius-lg);
+          box-shadow: var(--shadow-card);
+          padding: 2.5rem 2rem;
+          text-align: center;
+          animation: slideUp .4s cubic-bezier(.16,1,.3,1) forwards;
+        }
+
+        .success-card.is-visible { display: flex; }
+
+        @keyframes slideUp {
+          from { opacity:0; transform:translateY(20px); }
+          to   { opacity:1; transform:translateY(0); }
+        }
+
+        .success-icon {
+          width: 68px;
+          height: 68px;
+          border-radius: 50%;
+          background: var(--c-success-bg);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 1.25rem;
+        }
+
+        .success-icon svg { width: 34px; height: 34px; color: var(--c-success); }
+
+        .success-card__title {
+          font-family: var(--font-head);
+          font-size: 1.35rem;
+          font-weight: 700;
+          color: var(--c-text);
+          margin-bottom: .4rem;
+        }
+
+        .success-card__sub {
+          font-size: .85rem;
+          color: var(--c-muted);
+          margin-bottom: 1.5rem;
+        }
+
+        /* Vendor code pill */
+        .vendor-code-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: .5rem;
+          background: var(--c-hero-bg);
+          color: var(--c-amber);
+          font-family: 'Courier New', monospace;
+          font-size: 1.1rem;
+          font-weight: 700;
+          letter-spacing: .12em;
+          padding: .65rem 1.5rem;
+          border-radius: var(--radius);
+          margin-bottom: 1.5rem;
+        }
+
+        /* Summary grid inside success card */
+        .summary-grid {
+          width: 100%;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: .5rem;
+          margin-bottom: 1.75rem;
+          text-align: left;
+        }
+
+        .summary-item {
+          background: var(--c-bg);
+          border-radius: var(--radius-sm);
+          padding: .5rem .75rem;
+        }
+
+        .summary-item__key {
+          font-size: .68rem;
+          font-weight: 600;
+          letter-spacing: .06em;
+          text-transform: uppercase;
+          color: var(--c-muted);
+          margin-bottom: .18rem;
+        }
+
+        .summary-item__val {
+          font-size: .85rem;
+          color: var(--c-text);
+          font-weight: 500;
+          word-break: break-word;
+        }
+
+        /* Reset button */
+        .btn-reset {
+          display: inline-flex;
+          align-items: center;
+          gap: .45rem;
+          background: transparent;
+          border: 1.5px solid var(--c-teal);
+          color: var(--c-teal);
+          font-family: var(--font-head);
+          font-size: .88rem;
+          font-weight: 600;
+          padding: .55rem 1.4rem;
+          border-radius: var(--radius);
+          cursor: pointer;
+          transition: background var(--transition), color var(--transition);
+        }
+
+        .btn-reset:hover {
+          background: var(--c-teal);
+          color: #fff;
+        }
+
+        /* ── Footer note ───────────────────────────────────────────── */
+        .form-footer {
+          text-align: center;
+          font-size: .75rem;
+          color: var(--c-muted);
+          margin-top: .5rem;
+        }
+
+        /* ── Responsive ────────────────────────────────────────────── */
+        @media (max-width: 900px) {
+          .page { grid-template-columns: 1fr; }
+          .hero  { display: none; }
+          .form-panel { padding: 1.75rem 1.25rem; }
+        }
+
+        @media (max-width: 520px) {
+          .field-grid--2,
+          .field-grid--3 { grid-template-columns: 1fr; }
+          .summary-grid   { grid-template-columns: 1fr; }
         }
     </style>
 </head>
+
 <body>
+<div class="page" id="app">
 
-<div class="container">
-    <h2>Vendor Registration</h2>
+    <!-- ════════════════════════════════════════════════════════════
+         HERO PANEL (decorative, no interactive elements)
+    ═════════════════════════════════════════════════════════════ -->
+    <aside class="hero" aria-hidden="true">
 
-    <input type="text" id="name" placeholder="Name">
-    <input type="number" id="age" placeholder="Age">
-    <input type="text" id="gender" placeholder="Gender">
-    <input type="text" id="education" placeholder="Education">
-    <input type="text" id="contactNumber" placeholder="Contact Number">
-    <input type="email" id="email" placeholder="Email">
-    <input type="text" id="stallLocation" placeholder="Stall Location">
-    <input type="text" id="foodType" placeholder="Food Type">
+        <div class="hero__tag">
+            <!-- dot icon -->
+            <svg width="6" height="6" viewBox="0 0 6 6"><circle cx="3" cy="3" r="3" fill="currentColor"/></svg>
+            Official Registration Portal
+        </div>
 
-    <label>
-        <input type="checkbox" id="hygieneCertified"> Hygiene Certified
-    </label>
+        <h1 class="hero__title">
+            Register Your<br><span>Vendor Stall</span><br>in Minutes
+        </h1>
 
-    <button onclick="registerVendor()">Register</button>
+        <p class="hero__desc">
+            Join the city&#8217;s certified vendor programme.
+            Fill in your details, get an instant Vendor Code,
+            and start operating with full compliance.
+        </p>
+
+        <!-- SVG Illustration — vendor cart with floating icons -->
+        <svg class="hero__illustration" viewBox="0 0 260 200" xmlns="http://www.w3.org/2000/svg" fill="none">
+            <!-- Ground shadow -->
+            <ellipse cx="130" cy="188" rx="70" ry="6" fill="rgba(0,0,0,.25)"/>
+            <!-- Cart body -->
+            <rect x="55" y="100" width="150" height="75" rx="8" fill="#163356"/>
+            <rect x="55" y="100" width="150" height="75" rx="8" stroke="#0d9488" stroke-width="1.5"/>
+            <!-- Awning -->
+            <rect x="45" y="80" width="170" height="28" rx="6" fill="#0d9488"/>
+            <line x1="65" y1="80" x2="65" y2="108" stroke="rgba(255,255,255,.15)" stroke-width="1"/>
+            <line x1="95" y1="80" x2="95" y2="108" stroke="rgba(255,255,255,.15)" stroke-width="1"/>
+            <line x1="125" y1="80" x2="125" y2="108" stroke="rgba(255,255,255,.15)" stroke-width="1"/>
+            <line x1="155" y1="80" x2="155" y2="108" stroke="rgba(255,255,255,.15)" stroke-width="1"/>
+            <line x1="185" y1="80" x2="185" y2="108" stroke="rgba(255,255,255,.15)" stroke-width="1"/>
+            <!-- Awning scallop -->
+            <path d="M45 108 Q55 118 65 108 Q75 118 85 108 Q95 118 105 108 Q115 118 125 108 Q135 118 145 108 Q155 118 165 108 Q175 118 185 108 Q195 118 205 108 Q215 118 215 108" stroke="#0d9488" stroke-width="2" fill="none"/>
+            <!-- Pole -->
+            <rect x="125" y="60" width="10" height="22" rx="2" fill="#1e3a5f"/>
+            <!-- Shelf items: pots/bowls -->
+            <rect x="70" y="120" width="28" height="20" rx="4" fill="#1d4ed8" opacity=".7"/>
+            <rect x="108" y="118" width="24" height="22" rx="4" fill="#7c3aed" opacity=".7"/>
+            <rect x="142" y="122" width="28" height="18" rx="4" fill="#dc2626" opacity=".6"/>
+            <rect x="180" y="120" width="16" height="20" rx="4" fill="#16a34a" opacity=".7"/>
+            <!-- Counter top -->
+            <rect x="55" y="115" width="150" height="6" rx="2" fill="#0f2744"/>
+            <!-- Wheels -->
+            <circle cx="82"  cy="178" r="14" fill="#0f2744" stroke="#0d9488" stroke-width="2"/>
+            <circle cx="82"  cy="178" r="5"  fill="#0d9488"/>
+            <circle cx="178" cy="178" r="14" fill="#0f2744" stroke="#0d9488" stroke-width="2"/>
+            <circle cx="178" cy="178" r="5"  fill="#0d9488"/>
+            <!-- Axle -->
+            <line x1="82" y1="178" x2="178" y2="178" stroke="#163356" stroke-width="4"/>
+            <!-- Vendor person (simple silhouette) -->
+            <circle cx="130" cy="50" r="12" fill="#f59e0b"/>
+            <path d="M115 72 Q130 64 145 72 L142 100 H118 Z" fill="#0d9488"/>
+            <!-- Stars / sparkles (floating icons) -->
+            <circle cx="30"  cy="55"  r="4" fill="#f59e0b" opacity=".6">
+                <animate attributeName="opacity" values=".6;1;.6" dur="2s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="230" cy="45"  r="3" fill="#5eead4" opacity=".7">
+                <animate attributeName="opacity" values=".7;1;.7" dur="2.5s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="20"  cy="130" r="2.5" fill="#f59e0b" opacity=".5">
+                <animate attributeName="opacity" values=".5;.9;.5" dur="3s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="240" cy="130" r="3.5" fill="#fde68a" opacity=".6">
+                <animate attributeName="opacity" values=".6;1;.6" dur="1.8s" repeatCount="indefinite"/>
+            </circle>
+        </svg>
+
+        <div class="badge-chips">
+      <span class="chip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+        Instant Vendor Code
+      </span>
+            <span class="chip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Secure Portal
+      </span>
+            <span class="chip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Real-time Records
+      </span>
+        </div>
+
+    </aside>
+
+    <!-- ════════════════════════════════════════════════════════════
+         FORM PANEL
+    ═════════════════════════════════════════════════════════════ -->
+    <main class="form-panel">
+
+        <div class="form-header">
+            <p class="form-header__eyebrow">Step 1 of 1</p>
+            <h2 class="form-header__title">Vendor Registration Form</h2>
+            <p class="form-header__sub">
+                All fields marked <span style="color:var(--c-err)">*</span> are required.
+            </p>
+        </div>
+
+        <!-- ── Error Banner (shown on API/network error) ─────────── -->
+        <div
+                class="error-banner"
+                id="errorBanner"
+                role="alert"
+                aria-live="assertive"
+        >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span class="error-banner__text" id="errorText">Something went wrong. Please try again.</span>
+        </div>
+
+        <!-- ════════════════════════════════════════════════════════
+             REGISTRATION FORM — shown before success
+        ═══════════════════════════════════════════════════════════ -->
+        <div id="formWrapper">
+
+            <!-- Section 1: Personal Information -->
+            <div class="card">
+                <div class="section-label">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                    </svg>
+                    Personal Information
+                </div>
+
+                <div class="field-grid">
+
+                    <!-- Name — REQUIRED by backend (@Column nullable=false) -->
+                    <div class="field" id="field-name">
+                        <label for="name">
+                            Full Name <span class="req" aria-hidden="true">*</span>
+                        </label>
+                        <input
+                                type="text"
+                                id="name"
+                                name="name"
+                                placeholder="e.g. Ravi Kumar"
+                                autocomplete="name"
+                                aria-describedby="err-name"
+                                aria-required="true"
+                        />
+                        <span class="field__error" id="err-name" role="alert">Full name is required.</span>
+                    </div>
+
+                    <div class="field-grid field-grid--2">
+
+                        <!-- Age -->
+                        <div class="field" id="field-age">
+                            <label for="age">Age</label>
+                            <input
+                                    type="number"
+                                    id="age"
+                                    name="age"
+                                    placeholder="e.g. 30"
+                                    min="18"
+                                    max="80"
+                                    aria-describedby="err-age"
+                            />
+                            <span class="field__error" id="err-age" role="alert">Enter a valid age (18–80).</span>
+                        </div>
+
+                        <!-- Gender — dropdown replaces free-text input -->
+                        <div class="field" id="field-gender">
+                            <label for="gender">Gender</label>
+                            <!--
+                              BACKEND NOTE: 'gender' is sent as a plain String.
+                              Dropdown values map 1-to-1 with what the backend stores.
+                            -->
+                            <select id="gender" name="gender">
+                                <option value="">Select gender</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Non-binary">Non-binary</option>
+                                <option value="Prefer not to say">Prefer not to say</option>
+                            </select>
+                        </div>
+
+                    </div>
+
+                    <!-- Email -->
+                    <div class="field" id="field-email">
+                        <label for="email">Email Address</label>
+                        <input
+                                type="email"
+                                id="email"
+                                name="email"
+                                placeholder="e.g. ravi@example.com"
+                                autocomplete="email"
+                                aria-describedby="err-email"
+                        />
+                        <span class="field__error" id="err-email" role="alert">Enter a valid email address.</span>
+                    </div>
+
+                    <!-- Contact Number -->
+                    <div class="field" id="field-contactNumber">
+                        <label for="contactNumber">Contact Number</label>
+                        <input
+                                type="tel"
+                                id="contactNumber"
+                                name="contactNumber"
+                                placeholder="e.g. +91 98765 43210"
+                                autocomplete="tel"
+                                aria-describedby="err-contactNumber"
+                        />
+                        <span class="field__error" id="err-contactNumber" role="alert">Enter a valid contact number.</span>
+                    </div>
+
+                    <!-- Education -->
+                    <div class="field" id="field-education">
+                        <label for="education">Education Qualification</label>
+                        <!--
+                          BACKEND NOTE: 'education' is stored as String — dropdown
+                          provides consistent, normalised values.
+                        -->
+                        <select id="education" name="education">
+                            <option value="">Select qualification</option>
+                            <option value="No Formal Education">No Formal Education</option>
+                            <option value="Primary School">Primary School</option>
+                            <option value="Secondary School (10th)">Secondary School (10th)</option>
+                            <option value="Higher Secondary (12th)">Higher Secondary (12th)</option>
+                            <option value="Diploma">Diploma</option>
+                            <option value="Graduate">Graduate (B.A / B.Sc / B.Com etc.)</option>
+                            <option value="Postgraduate">Postgraduate</option>
+                        </select>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Section 2: Business Information -->
+            <div class="card">
+                <div class="section-label">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+                    </svg>
+                    Business Information
+                </div>
+
+                <div class="field-grid">
+
+                    <!-- Stall Location -->
+                    <div class="field" id="field-stallLocation">
+                        <label for="stallLocation">Stall Location</label>
+                        <input
+                                type="text"
+                                id="stallLocation"
+                                name="stallLocation"
+                                placeholder="e.g. Gandhi Nagar Market, Block C"
+                        />
+                    </div>
+
+                    <!-- Food Type — dropdown replaces free-text input -->
+                    <div class="field" id="field-foodType">
+                        <label for="foodType">Food Type / Category</label>
+                        <!--
+                          BACKEND NOTE: 'foodType' is stored as String.
+                          Dropdown ensures consistent categorisation.
+                        -->
+                        <select id="foodType" name="foodType">
+                            <option value="">Select food type</option>
+                            <option value="Street Food">Street Food</option>
+                            <option value="Snacks & Chaat">Snacks &amp; Chaat</option>
+                            <option value="South Indian">South Indian</option>
+                            <option value="North Indian">North Indian</option>
+                            <option value="Chinese / Indo-Chinese">Chinese / Indo-Chinese</option>
+                            <option value="Beverages">Beverages (Tea, Coffee, Juice)</option>
+                            <option value="Sweets & Desserts">Sweets &amp; Desserts</option>
+                            <option value="Fast Food">Fast Food</option>
+                            <option value="Fruits & Vegetables">Fruits &amp; Vegetables</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <!-- Hygiene Certified — custom toggle -->
+                    <!--
+                      BACKEND NOTE: 'hygieneCertified' must be a Boolean.
+                      The hidden checkbox's .checked property ensures this.
+                    -->
+                    <label class="toggle-field" for="hygieneCertified">
+                        <div class="toggle-field__info">
+                            <div class="toggle-field__label">Hygiene Certified</div>
+                            <div class="toggle-field__hint">Does the vendor hold a valid hygiene certification?</div>
+                        </div>
+                        <input type="checkbox" id="hygieneCertified" name="hygieneCertified" />
+                        <div class="toggle-track">
+                            <div class="toggle-thumb"></div>
+                        </div>
+                    </label>
+
+                </div>
+            </div>
+
+            <!-- Submit -->
+            <button
+                    class="btn-submit"
+                    id="submitBtn"
+                    type="button"
+                    onclick="registerVendor()"
+                    aria-label="Submit vendor registration"
+            >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" id="submitIcon">
+                    <path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9z"/>
+                </svg>
+                Register Vendor
+            </button>
+
+            <p class="form-footer">
+                Your information is stored securely and used solely for vendor management.
+            </p>
+
+        </div><!-- /formWrapper -->
+
+        <!-- ════════════════════════════════════════════════════════
+             SUCCESS CARD — shown after successful registration
+        ═══════════════════════════════════════════════════════════ -->
+        <div class="success-card" id="successCard" role="status" aria-live="polite">
+
+            <div class="success-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+            </div>
+
+            <h3 class="success-card__title">Registration Successful!</h3>
+            <p class="success-card__sub">Your vendor profile has been created. Keep your Vendor Code safe.</p>
+
+            <div class="vendor-code-pill" id="vendorCodeDisplay">
+                <!-- Injected by JS: e.g. VND-a1b2c3d4 -->
+            </div>
+
+            <div class="summary-grid" id="summaryGrid">
+                <!-- Injected by JS -->
+            </div>
+
+            <button class="btn-reset" id="resetBtn" onclick="resetForm()" aria-label="Register another vendor">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/>
+                </svg>
+                Register Another Vendor
+            </button>
+
+        </div><!-- /successCard -->
+
+    </main>
 </div>
 
+<!-- ════════════════════════════════════════════════════════════════
+     JAVASCRIPT
+     ─────────────────────────────────────────────────────────────
+     LOCKED API CONTRACT (must never change):
+       Endpoint  : POST /api/vendors
+       JSON keys : name, age, gender, education, contactNumber,
+                   email, stallLocation, foodType, hygieneCertified
+       Response  : { id, vendorCode, name, age, ... }
+═════════════════════════════════════════════════════════════════ -->
 <script>
-    function registerVendor() {
-        const vendor = {
-            name: document.getElementById("name").value,
-            age: parseInt(document.getElementById("age").value),
-            gender: document.getElementById("gender").value,
-            education: document.getElementById("education").value,
-            contactNumber: document.getElementById("contactNumber").value,
-            email: document.getElementById("email").value,
-            stallLocation: document.getElementById("stallLocation").value,
-            foodType: document.getElementById("foodType").value,
-            hygieneCertified: document.getElementById("hygieneCertified").checked
-        };
+    // ── Validation Rules ─────────────────────────────────────────
+    // Each rule: { id, errorId, validate(value) -> bool, optional }
+    const RULES = [
+      {
+        id: 'name',
+        errorId: 'err-name',
+        validate: v => v.trim().length >= 2,
+        // name is NOT NULL in backend entity — required
+      },
+      {
+        id: 'age',
+        errorId: 'err-age',
+        validate: v => v === '' || (Number(v) >= 18 && Number(v) <= 80),
+        optional: true,   // age is nullable in backend
+      },
+      {
+        id: 'email',
+        errorId: 'err-email',
+        validate: v => v === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
+        optional: true,
+      },
+      {
+        id: 'contactNumber',
+        errorId: 'err-contactNumber',
+        validate: v => v === '' || /^[+0-9\s\-()]{7,20}$/.test(v),
+        optional: true,
+      },
+    ];
 
-        fetch("/api/vendors", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(vendor)
-        })
-        .then(response => response.json())
-        .then(data => {
-            alert("Vendor registered successfully!\nVendor Code: " + data.vendorCode);
-        })
-        .catch(error => {
-            alert("Error registering vendor");
-            console.error(error);
+    /** Run all validation rules. Returns true if form is valid. */
+    function validateForm() {
+      let isValid = true;
+
+      for (const rule of RULES) {
+        const el       = document.getElementById(rule.id);
+        const fieldDiv = document.getElementById(`field-${rule.id}`);
+        const val      = el.value;
+
+        // Required field empty check
+        if (!rule.optional && val.trim() === '') {
+          setFieldError(fieldDiv, el, true);
+          isValid = false;
+          continue;
+        }
+
+        // Format check (only if a value was entered)
+        if (val !== '' && !rule.validate(val)) {
+          setFieldError(fieldDiv, el, true);
+          isValid = false;
+        } else {
+          setFieldError(fieldDiv, el, false);
+        }
+      }
+
+      return isValid;
+    }
+
+    function setFieldError(fieldDiv, input, hasError) {
+      if (hasError) {
+        fieldDiv.classList.add('is-error');
+        input.setAttribute('aria-invalid', 'true');
+      } else {
+        fieldDiv.classList.remove('is-error');
+        input.setAttribute('aria-invalid', 'false');
+      }
+    }
+
+    // Live validation — clear error as user types / changes value
+    RULES.forEach(rule => {
+      const el = document.getElementById(rule.id);
+      if (!el) return;
+      el.addEventListener('input', () => {
+        const fieldDiv = document.getElementById(`field-${rule.id}`);
+        const val = el.value;
+        const ok = rule.optional
+          ? (val === '' || rule.validate(val))
+          : (val.trim() !== '' && rule.validate(val));
+        setFieldError(fieldDiv, el, !ok);
+      });
+    });
+
+    // ── Build Payload ─────────────────────────────────────────────
+    /**
+     * Constructs the exact JSON object the Spring Boot backend expects.
+     * JSON keys are LOCKED — do not rename.
+     */
+    function buildPayload() {
+      const ageVal = document.getElementById('age').value;
+      return {
+        name:             document.getElementById('name').value.trim(),
+        age:              ageVal !== '' ? parseInt(ageVal, 10) : null,
+        gender:           document.getElementById('gender').value || null,
+        education:        document.getElementById('education').value || null,
+        contactNumber:    document.getElementById('contactNumber').value.trim() || null,
+        email:            document.getElementById('email').value.trim() || null,
+        stallLocation:    document.getElementById('stallLocation').value.trim() || null,
+        foodType:         document.getElementById('foodType').value || null,
+        // Boolean — checkbox .checked is already a boolean (true/false)
+        hygieneCertified: document.getElementById('hygieneCertified').checked,
+      };
+    }
+
+    // ── UI State Helpers ──────────────────────────────────────────
+    function setLoading(loading) {
+      const btn  = document.getElementById('submitBtn');
+      const icon = document.getElementById('submitIcon');
+
+      if (loading) {
+        btn.disabled = true;
+        icon.style.display = 'none';
+
+        // Insert spinner if not already present
+        if (!document.getElementById('btnSpinner')) {
+          const s = document.createElement('span');
+          s.className = 'spinner';
+          s.id = 'btnSpinner';
+          btn.insertBefore(s, btn.firstChild);
+        }
+        btn.childNodes[btn.childNodes.length - 1].textContent = '  Registering…';
+      } else {
+        btn.disabled = false;
+        icon.style.display = '';
+        const sp = document.getElementById('btnSpinner');
+        if (sp) sp.remove();
+        // Restore label
+        btn.childNodes[btn.childNodes.length - 1].textContent = '  Register Vendor';
+      }
+    }
+
+    function showError(msg) {
+      const banner = document.getElementById('errorBanner');
+      document.getElementById('errorText').textContent = msg;
+      banner.classList.add('is-visible');
+      banner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function hideError() {
+      document.getElementById('errorBanner').classList.remove('is-visible');
+    }
+
+    // ── Render Success Card ───────────────────────────────────────
+    function renderSuccess(data) {
+      // Hide the form, show success card
+      document.getElementById('formWrapper').style.display = 'none';
+      hideError();
+
+      // Populate vendor code pill
+      document.getElementById('vendorCodeDisplay').textContent = data.vendorCode || 'N/A';
+
+      // Populate summary grid with non-null fields returned by backend
+      const summaryFields = [
+        { key: 'Name',        val: data.name },
+        { key: 'Age',         val: data.age ?? '—' },
+        { key: 'Gender',      val: data.gender || '—' },
+        { key: 'Email',       val: data.email || '—' },
+        { key: 'Contact',     val: data.contactNumber || '—' },
+        { key: 'Food Type',   val: data.foodType || '—' },
+        { key: 'Stall',       val: data.stallLocation || '—' },
+        { key: 'Hygiene Cert',val: data.hygieneCertified ? 'Yes ✓' : 'No' },
+      ];
+
+      const grid = document.getElementById('summaryGrid');
+      grid.innerHTML = summaryFields.map(f => `
+        <div class="summary-item">
+          <div class="summary-item__key">${f.key}</div>
+          <div class="summary-item__val">${f.val}</div>
+        </div>
+      `).join('');
+
+      const card = document.getElementById('successCard');
+      card.classList.add('is-visible');
+      card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // ── Reset ─────────────────────────────────────────────────────
+    function resetForm() {
+      // Reset all inputs
+      ['name','age','gender','education','contactNumber',
+       'email','stallLocation','foodType'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+      document.getElementById('hygieneCertified').checked = false;
+
+      // Clear all validation errors
+      document.querySelectorAll('.field.is-error').forEach(f => {
+        f.classList.remove('is-error');
+      });
+
+      hideError();
+
+      // Toggle UI back to form
+      document.getElementById('successCard').classList.remove('is-visible');
+      document.getElementById('formWrapper').style.display = '';
+
+      // Focus first input for accessibility
+      document.getElementById('name').focus();
+    }
+
+    // ── Main Registration Handler ─────────────────────────────────
+    /**
+     * registerVendor() — called on button click.
+     *
+     * LOCKED BEHAVIOUR:
+     *   Method  : POST
+     *   URL     : /api/vendors          ← never changes
+     *   Headers : Content-Type: application/json
+     *   Body    : exact JSON from buildPayload()
+     */
+    async function registerVendor() {
+      hideError();
+
+      if (!validateForm()) {
+        // Scroll to first error
+        const firstErr = document.querySelector('.field.is-error input, .field.is-error select');
+        if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+
+      setLoading(true);
+
+      try {
+        const payload = buildPayload();
+
+        const response = await fetch('/api/vendors', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
         });
+
+        if (!response.ok) {
+          // Try to read backend error message (GlobalExceptionHandler returns { message, timestamp })
+          let errMsg = `Server error (${response.status}).`;
+          try {
+            const errBody = await response.json();
+            if (errBody.message) errMsg = errBody.message;
+          } catch (_) { /* JSON parse failed — use status code message */ }
+          showError(errMsg);
+          return;
+        }
+
+        const data = await response.json();
+        renderSuccess(data);
+
+      } catch (err) {
+        // Network-level failure (offline, CORS, etc.)
+        showError('Unable to reach the server. Please check your connection and try again.');
+        console.error('[VendorRegistration] Fetch error:', err);
+      } finally {
+        setLoading(false);
+      }
     }
 </script>
 
