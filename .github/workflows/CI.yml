@@ -6,6 +6,7 @@ on:
   pull_request:
 
 jobs:
+
   build:
     runs-on: ubuntu-latest
 
@@ -19,12 +20,20 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-
       - name: Give permission to mvnw
         run: chmod +x mvnw
-        
+
       - name: Build with Maven
         run: ./mvnw clean install
 
       - name: Run Tests
         run: ./mvnw test
+
+
+  deploy:
+    needs: build   # runs only if build succeeds
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger Render Deployment
+        run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK }}
