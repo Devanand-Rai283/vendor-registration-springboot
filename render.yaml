@@ -1,39 +1,36 @@
 version: "1"
-
 projects:
   - name: vendor-registration-springboot
     environments:
       - name: Production
-
         services:
           - type: web
             name: vendor-registration-springboot
             runtime: docker
             repo: https://github.com/Devanand-Rai283/vendor-registration-springboot
             plan: free
-            region: singapore
-            dockerContext: .
-            dockerfilePath: ./Dockerfile
-
             envVars:
               - key: SPRING_DATASOURCE_USERNAME
                 sync: false
               - key: SPRING_DATASOURCE_URL
                 sync: false
               - key: SPRING_DATASOURCE_PASSWORD
+                fromDatabase:
+                  name: vendor-db
+                  property: password
+              - key: spring.jpa.hibernate.ddl-auto
                 sync: false
-
-            # for proper CI/CD control
-            autoDeployTrigger: off
-
+            region: singapore
+            dockerContext: .
+            dockerfilePath: ./Dockerfile
+            autoDeployTrigger: commit
         databases:
           - name: vendor-db
-            databaseName: vendor_db_wkk8
-            user: vendor_db_wkk8_user
+            databaseName: vendor_db_atlv
+            user: vendordb_seec_user
             plan: free
             region: singapore
-            postgresMajorVersion: "18"
-
             ipAllowList:
               - source: 0.0.0.0/0
                 description: everywhere
+            postgresMajorVersion: "18"
