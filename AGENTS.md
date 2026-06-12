@@ -206,6 +206,18 @@ Failure to comply with Enforcement Rules invalidates the implementation.
 
 ---
 
+## Missing Capability Enforcement
+
+If implementation requires a capability that does NOT currently exist in the repository (for example: authentication, authorization frameworks, auditing systems, messaging infrastructure, caching layers, external integrations, Flyway, etc.), the agent MUST:
+
+STOP implementation of that portion of work.
+Explain the missing prerequisite.
+Identify the impact on the requested feature.
+Present available options.
+Request explicit user approval before proceeding.
+
+The agent MUST NOT introduce workaround implementations, temporary solutions, mock security mechanisms, placeholder infrastructure, or architectural substitutes without explicit approval.
+
 # Required Response Structure
 
 For all implementation-related tasks, responses MUST include:
