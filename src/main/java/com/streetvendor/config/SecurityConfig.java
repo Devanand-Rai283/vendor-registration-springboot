@@ -3,16 +3,13 @@ package com.streetvendor.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.streetvendor.common.response.ApiErrorResponse;
+import com.streetvendor.security.CustomAccessDeniedHandler;
+import com.streetvendor.security.CustomAuthenticationEntryPoint;
 import com.streetvendor.security.JwtAuthenticationFilter;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
 import java.util.Arrays;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
-import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -27,7 +24,8 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final Environment environment;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, Environment environment) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
+                          Environment environment) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.environment = environment;
     }
@@ -39,7 +37,10 @@ public class SecurityConfig {
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authBuilder -> authBuilder
-                        .requestMatchers("/actuator/health").permitAll());
+                        .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers("/api/auth/register").permitAll()
+                        .requestMatchers("/api/auth/login").permitAll()
+                        .requestMatchers("/api/auth/refresh").permitAll());
 
         if (!isProductionProfile()) {
             auth = auth.authorizeHttpRequests(authBuilder -> authBuilder
@@ -52,7 +53,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authBuilder -> authBuilder
                         .anyRequest().authenticated())
                 .exceptionHandling(exception -> exception
-                        .authenticationEntryPoint(customAuthenticationEntryPoint()))
+                        .authenticationEntryPoint(customAuthenticationEntryPoint(
+                                securityObjectMapper()))
+                        .accessDeniedHandler(customAccessDeniedHandler(
+                                securityObjectMapper())))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
@@ -64,33 +68,20 @@ public class SecurityConfig {
     }
 
     @Bean
-    public CustomAuthenticationEntryPoint customAuthenticationEntryPoint() {
+    public ObjectMapper securityObjectMapper() {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        return new CustomAuthenticationEntryPoint(objectMapper);
+        return objectMapper;
     }
 
-    public static class CustomAuthenticationEntryPoint implements org.springframework.security.web.AuthenticationEntryPoint {
+    @Bean
+    public CustomAuthenticationEntryPoint customAuthenticationEntryPoint(ObjectMapper securityObjectMapper) {
+        return new CustomAuthenticationEntryPoint(securityObjectMapper);
+    }
 
-        private final ObjectMapper objectMapper;
-
-        public CustomAuthenticationEntryPoint(ObjectMapper objectMapper) {
-            this.objectMapper = objectMapper;
-        }
-
-        @Override
-        public void commence(HttpServletRequest request, HttpServletResponse response,
-                             org.springframework.security.core.AuthenticationException authException) throws IOException {
-            ApiErrorResponse errorResponse = new ApiErrorResponse(
-                    HttpServletResponse.SC_UNAUTHORIZED,
-                    "Session expired. Please log in again.",
-                    request.getRequestURI());
-
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-            response.setCharacterEncoding("UTF-8");
-            objectMapper.writeValue(response.getOutputStream(), errorResponse);
-        }
+    @Bean
+    public CustomAccessDeniedHandler customAccessDeniedHandler(ObjectMapper securityObjectMapper) {
+        return new CustomAccessDeniedHandler(securityObjectMapper);
     }
 }

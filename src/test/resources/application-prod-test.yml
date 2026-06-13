@@ -11,6 +11,11 @@ spring:
   flyway:
     enabled: false
 
+jwt:
+  secret: dGhpc0lzQVZlcnlTZWN1dGVLZXlGb3JKV1RUb2tlbkdlbmVyYXRpb24=
+  access-expiration: 900000
+  refresh-expiration: 30
+
 springdoc:
   api-docs:
     enabled: false

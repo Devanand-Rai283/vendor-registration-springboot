@@ -1,10 +1,17 @@
 package com.streetvendor.security;
 
+import com.streetvendor.auth.entity.User;
+import com.streetvendor.auth.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.UUID;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -12,9 +19,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final UserRepository userRepository;
 
-    public JwtAuthenticationFilter(JwtService jwtService) {
+    public JwtAuthenticationFilter(JwtService jwtService, UserRepository userRepository) {
         this.jwtService = jwtService;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -27,7 +36,27 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        // TODO: AUTH phase - implement JWT token extraction and validation
+        String token = authHeader.substring(7);
+
+        if (!jwtService.validateToken(token)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        String userId = jwtService.extractUserId(token);
+        String email = jwtService.extractEmail(token);
+        String role = jwtService.extractRole(token);
+
+        if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            userRepository.findById(UUID.fromString(userId)).ifPresent(user -> {
+                SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + role);
+                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                        user, null, java.util.List.of(authority));
+                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(authToken);
+            });
+        }
+
         filterChain.doFilter(request, response);
     }
 }
