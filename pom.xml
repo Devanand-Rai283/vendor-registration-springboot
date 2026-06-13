@@ -8,11 +8,10 @@
         <version>4.0.2</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
-    <groupId>com.vendor</groupId>
-    <artifactId>vendorregistration</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-    <name>vendor-registration</name>
-    <description>vendor-registration</description>
+    <groupId>com.streetvendor</groupId>
+    <artifactId>street-vendor-platform</artifactId>
+    <name>Street Vendor Platform</name>
+    <description>Backend API for the Street Vendor Platform</description>
     <url/>
     <licenses>
         <license/>
