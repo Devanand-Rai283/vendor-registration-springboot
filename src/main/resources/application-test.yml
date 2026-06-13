@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    url: jdbc:tc:postgresql:16:///testdb
+    username: test
+    password: test
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  flyway:
+    enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
