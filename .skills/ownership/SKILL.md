@@ -153,15 +153,23 @@ No access
 
 Vendor:
 
-Own analytics only
+Own analytics only.
+
+Rule: `analytics.vendor_id == authenticated vendor`
+
+Enforcement: `GET /api/vendors/{id}/analytics` — return 403 if `{id}` does not match the authenticated vendor's vendor record, unless the caller is ADMIN.
 
 Admin:
 
-Platform analytics only
+Any individual vendor's analytics.
+
+`GET /api/vendors/{id}/analytics` bypasses the vendor ownership check for the ADMIN role. Admin may pass any `{id}` and receive that vendor's snapshot data. This is the mechanism for platform support and audit, not a platform-wide aggregate endpoint.
+
+Platform-level aggregate metrics (Admin dashboard overview — `GET /api/admin/dashboard`) are separate from vendor-level analytics and also accessible to ADMIN only.
 
 Customer:
 
-No access
+No access to any analytics endpoint. Return 403.
 
 ---
 

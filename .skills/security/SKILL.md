@@ -64,6 +64,40 @@ Never:
 
 ---
 
+## Admin Account Provisioning
+
+ADMIN accounts are never created through the public registration endpoint.
+
+Rule: `POST /api/auth/register` must return `403 Forbidden` if `role = ADMIN` is supplied in the request body. This is a security requirement enforced in AuthService — not a business rule to be softened later.
+
+The only creation mechanism for the first ADMIN account is the `DataInitializer` component, which runs on application startup:
+
+1. On startup, `DataInitializer` queries the USERS table for any existing ADMIN-role record.
+2. If none exists, it creates one using `ADMIN_EMAIL` and `ADMIN_PASSWORD` from environment variables.
+3. The password is BCrypt-hashed at strength 12 before storage — the raw env var value is never written to the database.
+4. If an ADMIN record already exists, `DataInitializer` exits without action — idempotent on every restart.
+
+Subsequent ADMIN accounts are created by existing admins via the admin dashboard only. There is no other path.
+
+Environment variables required before first deployment:
+
+```
+ADMIN_EMAIL     — email for the bootstrap admin account
+ADMIN_PASSWORD  — plaintext password (BCrypt-hashed on write, never stored raw)
+```
+
+These must be rotated after initial login. Leaving the bootstrap credentials unchanged in production is a security violation.
+
+Implementation checklist for any ticket touching authentication or user registration:
+
+✓ `POST /api/auth/register` rejects ADMIN role with 403.
+
+✓ `DataInitializer` idempotency verified — does not duplicate admin on restart.
+
+✓ `ADMIN_PASSWORD` is BCrypt-hashed before writing to USERS table — env var is read-once at startup, never logged.
+
+---
+
 ## Rate Limiting
 
 Required Endpoints:
@@ -82,8 +116,11 @@ Discovery:
 
 Requirements:
 
-* Redis-backed
-* Retry-After header returned
+* Redis-backed — rate limiting counters are stored in Redis, not in-memory
+* Retry-After header returned on 429 responses
+* Key format: `ratelimit:{ip}:{endpoint}`
+
+Infrastructure dependency: SECURITY-003 (rate limiting) requires Redis to be operational. Do not implement SECURITY-003 before verifying Redis infrastructure is in place (see DISCOVERY-004). If Redis is unavailable, rate limiting fails silently — which is unacceptable for a security control. The application must fail startup if Redis is unreachable (see Architecture skill — Redis Infrastructure Requirements).
 
 ---
 
@@ -125,6 +162,15 @@ Required Events:
 * ACCOUNT_LOCKED
 * ACCOUNT_SUSPENDED
 * ACCOUNT_REACTIVATED
+* ORDER_CANCELLED — written by ORDER-005 (PATCH /api/orders/{id}/cancel) on every successful cancellation
+* ORDER_STATUS_CHANGED — written by ORDER-003 (PUT /api/orders/{id}/status) on every valid vendor-driven transition (ACCEPTED, PREPARING, READY, COMPLETED, or vendor CANCELLED)
+
+Do NOT log:
+
+* Passwords
+* Raw JWT tokens
+* Payment card data
+* Personal identity documents
 
 ---
 
@@ -183,15 +229,19 @@ Images:
 
 ✓ BCrypt strength = 12.
 
-✓ Rate limiting present.
+✓ Rate limiting present and Redis-backed (not in-memory).
 
 ✓ Lockout enforced.
 
-✓ Audit logs generated.
+✓ Audit logs generated — all required events from the Audit Logging section are present, including ORDER_CANCELLED and ORDER_STATUS_CHANGED where applicable.
 
 ✓ Payment verification secured.
 
 ✓ File validation implemented.
+
+✓ POST /api/auth/register rejects ADMIN role with 403.
+
+✓ DataInitializer creates admin only if none exists (idempotent).
 
 ---
 
