@@ -40,7 +40,8 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/api/auth/register").permitAll()
                         .requestMatchers("/api/auth/login").permitAll()
-                        .requestMatchers("/api/auth/refresh").permitAll());
+                        .requestMatchers("/api/auth/refresh").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/vendors").hasRole("VENDOR"));
 
         if (!isProductionProfile()) {
             auth = auth.authorizeHttpRequests(authBuilder -> authBuilder
