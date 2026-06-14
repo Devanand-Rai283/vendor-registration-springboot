@@ -3,10 +3,12 @@ package com.streetvendor.vendor.controller;
 import com.streetvendor.common.response.ApiResponse;
 import com.streetvendor.vendor.dto.CreateVendorRequest;
 import com.streetvendor.vendor.dto.VendorResponse;
+import com.streetvendor.vendor.dto.VendorStatusResponse;
 import com.streetvendor.vendor.service.VendorService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,5 +31,11 @@ public class VendorController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(ApiResponse.success(response.message(), response));
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<VendorStatusResponse>> getMyVendorStatus() {
+        VendorStatusResponse response = vendorService.getMyVendorStatus();
+        return ResponseEntity.ok(ApiResponse.success("Vendor status retrieved", response));
     }
 }

@@ -64,6 +64,9 @@ public class Vendor extends AuditableEntity {
     @Column(nullable = false)
     private Integer totalReviews;
 
+    @Column(name = "rejection_reason", columnDefinition = "text")
+    private String rejectionReason;
+
     protected Vendor() {
     }
 
@@ -170,5 +173,13 @@ public class Vendor extends AuditableEntity {
 
     public void setTotalReviews(Integer totalReviews) {
         this.totalReviews = totalReviews;
+    }
+
+    public String getRejectionReason() {
+        return rejectionReason;
+    }
+
+    public void setRejectionReason(String rejectionReason) {
+        this.rejectionReason = rejectionReason;
     }
 }

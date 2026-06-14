@@ -1,19 +1,17 @@
 package com.streetvendor.vendor;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.streetvendor.auth.entity.AccountStatus;
 import com.streetvendor.auth.entity.Role;
 import com.streetvendor.auth.entity.User;
 import com.streetvendor.auth.repository.UserRepository;
 import com.streetvendor.security.JwtService;
 import com.streetvendor.support.AbstractSecurityTest;
-import com.streetvendor.vendor.dto.CreateVendorRequest;
-import com.streetvendor.vendor.dto.VendorResponse;
+import com.streetvendor.vendor.dto.VendorStatusResponse;
+import com.streetvendor.vendor.enums.VendorStatus;
 import com.streetvendor.vendor.service.VendorService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -21,13 +19,12 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ActiveProfiles("security-test")
-class VendorSecurityTest extends AbstractSecurityTest {
+class VendorMeSecurityTest extends AbstractSecurityTest {
 
     @Autowired
     private UserRepository userRepository;
@@ -41,12 +38,9 @@ class VendorSecurityTest extends AbstractSecurityTest {
     @MockitoBean
     private VendorService vendorService;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
-
     private User vendorUser;
     private User customerUser;
     private User adminUser;
-    private CreateVendorRequest validRequest;
 
     @BeforeEach
     void setUpTestData() {
@@ -58,17 +52,6 @@ class VendorSecurityTest extends AbstractSecurityTest {
         userRepository.save(vendorUser);
         userRepository.save(customerUser);
         userRepository.save(adminUser);
-
-        validRequest = new CreateVendorRequest(
-                "Test Business",
-                "Owner",
-                "1234567890",
-                "Indian",
-                "Delicious food",
-                new BigDecimal("12.9716"),
-                new BigDecimal("77.5946"),
-                "123 Main St"
-        );
     }
 
     private String generateToken(User user) {
@@ -77,44 +60,37 @@ class VendorSecurityTest extends AbstractSecurityTest {
 
     @Test
     void shouldReturn401WhenNotAuthenticated() throws Exception {
-        mockMvc.perform(post("/api/vendors")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validRequest)))
+        mockMvc.perform(get("/api/vendors/me"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
-    void shouldReturn403WhenCustomerTriesToCreateVendor() throws Exception {
+    void shouldReturn403WhenCustomerTriesToAccess() throws Exception {
         String token = generateToken(customerUser);
 
-        mockMvc.perform(post("/api/vendors")
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validRequest)))
+        mockMvc.perform(get("/api/vendors/me")
+                        .header("Authorization", "Bearer " + token))
                 .andExpect(status().isForbidden());
     }
 
     @Test
-    void shouldReturn403WhenAdminTriesToCreateVendor() throws Exception {
+    void shouldReturn403WhenAdminTriesToAccess() throws Exception {
         String token = generateToken(adminUser);
 
-        mockMvc.perform(post("/api/vendors")
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validRequest)))
+        mockMvc.perform(get("/api/vendors/me")
+                        .header("Authorization", "Bearer " + token))
                 .andExpect(status().isForbidden());
     }
 
     @Test
-    void shouldReturn201WhenVendorCreatesProfile() throws Exception {
+    void shouldReturn200WhenVendorAccessesOwnProfile() throws Exception {
         String token = generateToken(vendorUser);
-        VendorResponse response = new VendorResponse(UUID.randomUUID(), com.streetvendor.vendor.enums.VendorStatus.PENDING_REVIEW, "Vendor profile created successfully.", null);
-        when(vendorService.createVendor(any(CreateVendorRequest.class))).thenReturn(response);
+        VendorStatusResponse response = new VendorStatusResponse(
+                UUID.randomUUID(), "Test Business", VendorStatus.PENDING_REVIEW, BigDecimal.ZERO);
+        when(vendorService.getMyVendorStatus()).thenReturn(response);
 
-        mockMvc.perform(post("/api/vendors")
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validRequest)))
-                .andExpect(status().isCreated());
+        mockMvc.perform(get("/api/vendors/me")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
     }
 }

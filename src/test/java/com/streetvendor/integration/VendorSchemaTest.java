@@ -45,6 +45,7 @@ class VendorSchemaTest {
         assertTrue(columns.contains("TOTAL_REVIEWS"), "vendors should have total_reviews column");
         assertTrue(columns.contains("CREATED_AT"), "vendors should have created_at column");
         assertTrue(columns.contains("UPDATED_AT"), "vendors should have updated_at column");
+        assertTrue(columns.contains("REJECTION_REASON"), "vendors should have rejection_reason column");
     }
 
 

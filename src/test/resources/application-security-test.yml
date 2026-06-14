@@ -34,3 +34,10 @@ jwt:
   secret: dGhpc0lzQVZlcnlTZWN1dGVLZXlGb3JKV1RUb2tlbkdlbmVyYXRpb24=
   access-expiration: 900000
   refresh-expiration: 30
+
+r2:
+  access-key: test-access-key
+  secret-key: test-secret-key
+  bucket-name: test-bucket
+  region: auto
+  endpoint: https://test.r2.cloudflarestorage.com

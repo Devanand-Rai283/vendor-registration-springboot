@@ -7,8 +7,9 @@ import com.streetvendor.auth.entity.User;
 import com.streetvendor.auth.repository.UserRepository;
 import com.streetvendor.security.JwtService;
 import com.streetvendor.support.AbstractSecurityTest;
-import com.streetvendor.vendor.dto.CreateVendorRequest;
+import com.streetvendor.vendor.dto.RejectVendorRequest;
 import com.streetvendor.vendor.dto.VendorResponse;
+import com.streetvendor.vendor.enums.VendorStatus;
 import com.streetvendor.vendor.service.VendorService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,7 +19,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import java.math.BigDecimal;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -27,7 +27,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ActiveProfiles("security-test")
-class VendorSecurityTest extends AbstractSecurityTest {
+class AdminVendorRejectSecurityTest extends AbstractSecurityTest {
 
     @Autowired
     private UserRepository userRepository;
@@ -43,32 +43,20 @@ class VendorSecurityTest extends AbstractSecurityTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    private User adminUser;
     private User vendorUser;
     private User customerUser;
-    private User adminUser;
-    private CreateVendorRequest validRequest;
 
     @BeforeEach
     void setUpTestData() {
         userRepository.deleteAll();
+        adminUser = new User(UUID.randomUUID(), "admin@example.com", passwordEncoder.encode("Password1!"), Role.ADMIN, AccountStatus.ACTIVE);
         vendorUser = new User(UUID.randomUUID(), "vendor@example.com", passwordEncoder.encode("Password1!"), Role.VENDOR, AccountStatus.ACTIVE);
         customerUser = new User(UUID.randomUUID(), "customer@example.com", passwordEncoder.encode("Password1!"), Role.CUSTOMER, AccountStatus.ACTIVE);
-        adminUser = new User(UUID.randomUUID(), "admin@example.com", passwordEncoder.encode("Password1!"), Role.ADMIN, AccountStatus.ACTIVE);
 
+        userRepository.save(adminUser);
         userRepository.save(vendorUser);
         userRepository.save(customerUser);
-        userRepository.save(adminUser);
-
-        validRequest = new CreateVendorRequest(
-                "Test Business",
-                "Owner",
-                "1234567890",
-                "Indian",
-                "Delicious food",
-                new BigDecimal("12.9716"),
-                new BigDecimal("77.5946"),
-                "123 Main St"
-        );
     }
 
     private String generateToken(User user) {
@@ -77,44 +65,50 @@ class VendorSecurityTest extends AbstractSecurityTest {
 
     @Test
     void shouldReturn401WhenNotAuthenticated() throws Exception {
-        mockMvc.perform(post("/api/vendors")
+        RejectVendorRequest request = new RejectVendorRequest("Expired license");
+
+        mockMvc.perform(post("/api/admin/vendors/{id}/reject", UUID.randomUUID())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validRequest)))
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
-    void shouldReturn403WhenCustomerTriesToCreateVendor() throws Exception {
+    void shouldReturn403WhenCustomerTriesToAccess() throws Exception {
         String token = generateToken(customerUser);
+        RejectVendorRequest request = new RejectVendorRequest("Expired license");
 
-        mockMvc.perform(post("/api/vendors")
+        mockMvc.perform(post("/api/admin/vendors/{id}/reject", UUID.randomUUID())
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validRequest)))
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isForbidden());
     }
 
     @Test
-    void shouldReturn403WhenAdminTriesToCreateVendor() throws Exception {
-        String token = generateToken(adminUser);
-
-        mockMvc.perform(post("/api/vendors")
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validRequest)))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void shouldReturn201WhenVendorCreatesProfile() throws Exception {
+    void shouldReturn403WhenVendorTriesToAccess() throws Exception {
         String token = generateToken(vendorUser);
-        VendorResponse response = new VendorResponse(UUID.randomUUID(), com.streetvendor.vendor.enums.VendorStatus.PENDING_REVIEW, "Vendor profile created successfully.", null);
-        when(vendorService.createVendor(any(CreateVendorRequest.class))).thenReturn(response);
+        RejectVendorRequest request = new RejectVendorRequest("Expired license");
 
-        mockMvc.perform(post("/api/vendors")
+        mockMvc.perform(post("/api/admin/vendors/{id}/reject", UUID.randomUUID())
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validRequest)))
-                .andExpect(status().isCreated());
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldReturn200WhenAdminRejectsVendor() throws Exception {
+        String token = generateToken(adminUser);
+        VendorResponse response = new VendorResponse(UUID.randomUUID(), VendorStatus.REJECTED, "Vendor rejected successfully.", "Expired license");
+        when(vendorService.rejectVendor(any(UUID.class), any(String.class))).thenReturn(response);
+
+        RejectVendorRequest request = new RejectVendorRequest("Expired license");
+
+        mockMvc.perform(post("/api/admin/vendors/{id}/reject", UUID.randomUUID())
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
     }
 }

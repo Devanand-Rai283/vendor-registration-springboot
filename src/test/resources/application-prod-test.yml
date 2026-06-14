@@ -21,3 +21,10 @@ springdoc:
     enabled: false
   swagger-ui:
     enabled: false
+
+r2:
+  access-key: test-access-key
+  secret-key: test-secret-key
+  bucket-name: test-bucket
+  region: auto
+  endpoint: https://test.r2.cloudflarestorage.com

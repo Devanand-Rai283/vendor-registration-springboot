@@ -10,6 +10,7 @@ import java.util.Arrays;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -41,7 +42,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/register").permitAll()
                         .requestMatchers("/api/auth/login").permitAll()
                         .requestMatchers("/api/auth/refresh").permitAll()
-                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/vendors").hasRole("VENDOR"));
+                        .requestMatchers(HttpMethod.POST, "/api/vendors").hasRole("VENDOR")
+                        .requestMatchers(HttpMethod.GET, "/api/vendors/me").hasRole("VENDOR")
+                        .requestMatchers(HttpMethod.POST, "/api/uploads/**").hasRole("VENDOR")
+                        .requestMatchers(HttpMethod.POST, "/api/admin/vendors/**").hasRole("ADMIN"));
 
         if (!isProductionProfile()) {
             auth = auth.authorizeHttpRequests(authBuilder -> authBuilder

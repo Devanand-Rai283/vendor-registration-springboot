@@ -41,7 +41,7 @@ class VendorControllerTest extends AbstractIntegrationTest {
                 new BigDecimal("77.5946"),
                 "123 Main St"
         );
-        VendorResponse response = new VendorResponse(UUID.randomUUID(), VendorStatus.PENDING_REVIEW, "Vendor profile created successfully.");
+        VendorResponse response = new VendorResponse(UUID.randomUUID(), VendorStatus.PENDING_REVIEW, "Vendor profile created successfully.", null);
 
         when(vendorService.createVendor(any(CreateVendorRequest.class))).thenReturn(response);
 

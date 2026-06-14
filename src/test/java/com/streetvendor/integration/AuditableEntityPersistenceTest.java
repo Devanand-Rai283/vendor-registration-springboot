@@ -19,6 +19,9 @@ class AuditableEntityPersistenceTest extends AbstractIntegrationTest {
     @Autowired
     private TestAuditableEntityRepository repository;
 
+    @Autowired
+    private jakarta.persistence.EntityManager entityManager;
+
     @Test
     void shouldPopulateCreatedAtAndUpdatedAtOnPersist() {
         TestAuditableEntity entity = new TestAuditableEntity("Test Item");
@@ -56,19 +59,31 @@ class AuditableEntityPersistenceTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void shouldUpdateUpdatedAtAndKeepCreatedAtUnchangedOnModify() {
+    void shouldUpdateUpdatedAtAndKeepCreatedAtUnchangedOnModify() throws InterruptedException {
         TestAuditableEntity entity = new TestAuditableEntity("Initial");
         TestAuditableEntity saved = repository.saveAndFlush(entity);
+
+        assertNotNull(saved.getId(), "ID should be set after persist");
 
         Instant originalCreatedAt = saved.getCreatedAt();
         Instant originalUpdatedAt = saved.getUpdatedAt();
 
-        saved.setName("Modified");
-        TestAuditableEntity updated = repository.saveAndFlush(saved);
+        // Detach the entity so the next save() is a true merge(), causing
+        // AuditingEntityListener to fire @LastModifiedDate.
+        // Without detach(), the entity remains managed and save()+flush()
+        // does not re-invoke the auditing listener.
+        entityManager.detach(saved);
 
-        assertEquals(originalCreatedAt, updated.getCreatedAt(), "createdAt should remain unchanged after update");
-        assertNotEquals(originalUpdatedAt, updated.getUpdatedAt(), "updatedAt should change after update");
-        assertTrue(updated.getUpdatedAt().isAfter(originalUpdatedAt) || updated.getUpdatedAt().compareTo(originalUpdatedAt) == 0,
-                "updatedAt should be after or equal to original");
+        // Ensure at least 1 ms passes so Instant.isAfter() is reliable
+        // on machines where the JPA clock and system clock share millisecond resolution.
+        Thread.sleep(1);
+
+        saved.setName("Modified");
+
+        TestAuditableEntity result = repository.save(saved);
+        repository.flush();
+
+        assertEquals(originalCreatedAt, result.getCreatedAt(), "createdAt should remain unchanged after update");
+        assertTrue(result.getUpdatedAt().isAfter(originalUpdatedAt), "updatedAt should be after update");
     }
 }
