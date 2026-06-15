@@ -4,12 +4,14 @@ import com.streetvendor.auth.entity.AccountStatus;
 import com.streetvendor.auth.entity.Role;
 import com.streetvendor.auth.entity.User;
 import com.streetvendor.auth.repository.UserRepository;
+import com.streetvendor.common.audit.AuditConfig;
 import com.streetvendor.menu.entity.MenuCategory;
 import com.streetvendor.support.AbstractIntegrationTest;
 import com.streetvendor.vendor.entity.Vendor;
 import com.streetvendor.vendor.repository.VendorRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +21,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 @ActiveProfiles("audit-test")
+@Import(AuditConfig.class)
 @Transactional
 class MenuCategoryPersistenceTest extends AbstractIntegrationTest {
 
