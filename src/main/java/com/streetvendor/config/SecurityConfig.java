@@ -22,71 +22,74 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final Environment environment;
+        private final JwtAuthenticationFilter jwtAuthenticationFilter;
+        private final Environment environment;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
-                          Environment environment) {
-        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-        this.environment = environment;
-    }
-
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        var auth = http
-                .csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(authBuilder -> authBuilder
-                        .requestMatchers("/actuator/health").permitAll()
-                        .requestMatchers("/api/auth/register").permitAll()
-                        .requestMatchers("/api/auth/login").permitAll()
-                        .requestMatchers("/api/auth/refresh").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/vendors").hasRole("VENDOR")
-                        .requestMatchers(HttpMethod.GET, "/api/vendors/me").hasRole("VENDOR")
-                        .requestMatchers(HttpMethod.POST, "/api/uploads/**").hasRole("VENDOR")
-                        .requestMatchers(HttpMethod.POST, "/api/admin/vendors/**").hasRole("ADMIN"));
-
-        if (!isProductionProfile()) {
-            auth = auth.authorizeHttpRequests(authBuilder -> authBuilder
-                    .requestMatchers("/api/docs/**").permitAll()
-                    .requestMatchers("/swagger-ui/**").permitAll()
-                    .requestMatchers("/swagger-ui.html").permitAll());
+        public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
+                        Environment environment) {
+                this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+                this.environment = environment;
         }
 
-        return auth
-                .authorizeHttpRequests(authBuilder -> authBuilder
-                        .anyRequest().authenticated())
-                .exceptionHandling(exception -> exception
-                        .authenticationEntryPoint(customAuthenticationEntryPoint(
-                                securityObjectMapper()))
-                        .accessDeniedHandler(customAccessDeniedHandler(
-                                securityObjectMapper())))
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                .build();
-    }
+        @Bean
+        public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+                var auth = http
+                                .csrf(AbstractHttpConfigurer::disable)
+                                .sessionManagement(session -> session
+                                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                                .authorizeHttpRequests(authBuilder -> authBuilder
+                                                .requestMatchers("/actuator/health").permitAll()
+                                                .requestMatchers("/api/auth/register").permitAll()
+                                                .requestMatchers("/api/auth/login").permitAll()
+                                                .requestMatchers("/api/auth/refresh").permitAll()
+                                                .requestMatchers(HttpMethod.GET, "/api/vendors/nearby").permitAll()
+                                                .requestMatchers(HttpMethod.GET, "/api/vendors/*/menu").permitAll()
+                                                .requestMatchers(HttpMethod.POST, "/api/vendors").hasRole("VENDOR")
+                                                .requestMatchers(HttpMethod.GET, "/api/vendors/me").hasRole("VENDOR")
+                                                .requestMatchers(HttpMethod.POST, "/api/uploads/**").hasRole("VENDOR")
+                                                .requestMatchers(HttpMethod.POST, "/api/admin/vendors/**")
+                                                .hasRole("ADMIN"));
 
-    private boolean isProductionProfile() {
-        return Arrays.asList(environment.getActiveProfiles())
-                .stream()
-                .anyMatch(profile -> profile.contains("prod"));
-    }
+                if (!isProductionProfile()) {
+                        auth = auth.authorizeHttpRequests(authBuilder -> authBuilder
+                                        .requestMatchers("/api/docs/**").permitAll()
+                                        .requestMatchers("/swagger-ui/**").permitAll()
+                                        .requestMatchers("/swagger-ui.html").permitAll());
+                }
 
-    @Bean
-    public ObjectMapper securityObjectMapper() {
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
-        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        return objectMapper;
-    }
+                return auth
+                                .authorizeHttpRequests(authBuilder -> authBuilder
+                                                .anyRequest().authenticated())
+                                .exceptionHandling(exception -> exception
+                                                .authenticationEntryPoint(customAuthenticationEntryPoint(
+                                                                securityObjectMapper()))
+                                                .accessDeniedHandler(customAccessDeniedHandler(
+                                                                securityObjectMapper())))
+                                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                                .build();
+        }
 
-    @Bean
-    public CustomAuthenticationEntryPoint customAuthenticationEntryPoint(ObjectMapper securityObjectMapper) {
-        return new CustomAuthenticationEntryPoint(securityObjectMapper);
-    }
+        private boolean isProductionProfile() {
+                return Arrays.asList(environment.getActiveProfiles())
+                                .stream()
+                                .anyMatch(profile -> profile.contains("prod"));
+        }
 
-    @Bean
-    public CustomAccessDeniedHandler customAccessDeniedHandler(ObjectMapper securityObjectMapper) {
-        return new CustomAccessDeniedHandler(securityObjectMapper);
-    }
+        @Bean
+        public ObjectMapper securityObjectMapper() {
+                ObjectMapper objectMapper = new ObjectMapper();
+                objectMapper.registerModule(new JavaTimeModule());
+                objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+                return objectMapper;
+        }
+
+        @Bean
+        public CustomAuthenticationEntryPoint customAuthenticationEntryPoint(ObjectMapper securityObjectMapper) {
+                return new CustomAuthenticationEntryPoint(securityObjectMapper);
+        }
+
+        @Bean
+        public CustomAccessDeniedHandler customAccessDeniedHandler(ObjectMapper securityObjectMapper) {
+                return new CustomAccessDeniedHandler(securityObjectMapper);
+        }
 }

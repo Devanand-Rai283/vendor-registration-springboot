@@ -11,5 +11,7 @@ public interface MenuItemRepository extends JpaRepository<MenuItem, UUID> {
 
     List<MenuItem> findByVendorIdOrderByCreatedAtAsc(UUID vendorId);
 
+    List<MenuItem> findByVendorIdAndIsAvailableTrue(UUID vendorId);
+
     Optional<MenuItem> findByIdAndVendorId(UUID itemId, UUID vendorId);
 }

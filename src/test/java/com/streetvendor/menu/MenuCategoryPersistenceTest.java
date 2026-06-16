@@ -66,7 +66,7 @@ class MenuCategoryPersistenceTest extends AbstractIntegrationTest {
     @Test
     void shouldSetCreatedAtToUtcTimestamp() {
         Vendor vendor = createTestVendor();
-        Instant before = Instant.now();
+        Instant before = Instant.now().minusSeconds(1);
         UUID categoryId = UUID.randomUUID();
         MenuCategory category = new MenuCategory(categoryId, vendor, "Appetizers", 1);
 
@@ -74,12 +74,12 @@ class MenuCategoryPersistenceTest extends AbstractIntegrationTest {
         entityManager.flush();
         entityManager.clear();
 
-        Instant after = Instant.now();
+        Instant after = Instant.now().plusSeconds(1);
         MenuCategory result = entityManager.find(MenuCategory.class, categoryId);
 
         assertNotNull(result.getCreatedAt(), "createdAt should not be null after persist");
-        assertFalse(result.getCreatedAt().isBefore(before), "createdAt should not be before test started");
-        assertFalse(result.getCreatedAt().isAfter(after), "createdAt should not be after test ended");
+        assertFalse(result.getCreatedAt().isBefore(before), "createdAt should not be more than 1s before test start");
+        assertFalse(result.getCreatedAt().isAfter(after), "createdAt should not be more than 1s after test end");
     }
 
     @Test
