@@ -2,11 +2,13 @@ package com.streetvendor.discovery.service;
 
 import com.streetvendor.common.exception.ResourceNotFoundException;
 import com.streetvendor.discovery.dto.BoundingBox;
+import com.streetvendor.discovery.dto.FoodSearchResponseDto;
 import com.streetvendor.discovery.dto.MenuCategoryResponseDto;
 import com.streetvendor.discovery.dto.MenuItemResponseDto;
 import com.streetvendor.discovery.dto.NearbyVendorResponse;
 import com.streetvendor.discovery.dto.VendorMenuResponseDto;
 import com.streetvendor.discovery.dto.VendorSummaryResponse;
+import com.streetvendor.discovery.repository.FoodSearchRepository;
 import com.streetvendor.discovery.util.BoundingBoxCalculator;
 import com.streetvendor.discovery.util.DistanceCalculator;
 import com.streetvendor.vendor.entity.Vendor;
@@ -17,6 +19,7 @@ import com.streetvendor.menu.repository.MenuItemRepository;
 import com.streetvendor.vendor.enums.VendorStatus;
 import com.streetvendor.vendor.repository.VendorRepository;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
@@ -57,14 +60,17 @@ public class DiscoveryServiceImpl implements DiscoveryService {
     private final VendorRepository vendorRepository;
     private final MenuCategoryRepository menuCategoryRepository;
     private final MenuItemRepository menuItemRepository;
+    private final FoodSearchRepository foodSearchRepository;
 
     public DiscoveryServiceImpl(
             VendorRepository vendorRepository,
             MenuCategoryRepository menuCategoryRepository,
-            MenuItemRepository menuItemRepository) {
+            MenuItemRepository menuItemRepository,
+            FoodSearchRepository foodSearchRepository) {
         this.vendorRepository = vendorRepository;
         this.menuCategoryRepository = menuCategoryRepository;
         this.menuItemRepository = menuItemRepository;
+        this.foodSearchRepository = foodSearchRepository;
     }
 
     @Override
@@ -102,6 +108,33 @@ public class DiscoveryServiceImpl implements DiscoveryService {
                 : List.of();
 
         return new NearbyVendorResponse(pageContent, page, size, totalElements, totalPages);
+    }
+
+    @Override
+    public Page<FoodSearchResponseDto> searchFoods(
+            String keyword,
+            String foodType,
+            String dietaryTag,
+            Integer page,
+            Integer size) {
+        if (keyword == null || keyword.isBlank()) {
+            throw new IllegalArgumentException("Keyword is required");
+        }
+
+        int resolvedPage = page != null ? page : 0;
+        int resolvedSize = size != null ? size : 20;
+
+        if (resolvedSize <= 0) {
+            throw new IllegalArgumentException("Page size must be greater than 0");
+        }
+        if (resolvedSize > 100) {
+            throw new IllegalArgumentException("Page size must not exceed 100");
+        }
+
+        Pageable pageable = PageRequest.of(resolvedPage, resolvedSize);
+
+        return foodSearchRepository.searchFoods(
+                keyword, foodType, dietaryTag, VendorStatus.APPROVED, pageable);
     }
 
     /**

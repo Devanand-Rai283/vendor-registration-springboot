@@ -4,12 +4,14 @@ import com.streetvendor.auth.entity.AccountStatus;
 import com.streetvendor.auth.entity.Role;
 import com.streetvendor.auth.entity.User;
 import com.streetvendor.auth.repository.UserRepository;
+import com.streetvendor.discovery.dto.FoodSearchResponseDto;
 import com.streetvendor.discovery.dto.NearbyVendorResponse;
 import com.streetvendor.discovery.dto.VendorSummaryResponse;
 import com.streetvendor.discovery.service.DiscoveryService;
 import com.streetvendor.security.JwtService;
 import com.streetvendor.support.AbstractSecurityTest;
 import org.junit.jupiter.api.BeforeEach;
+import org.springframework.data.domain.PageImpl;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,6 +25,7 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -61,6 +64,11 @@ class DiscoverySecurityTest extends AbstractSecurityTest {
 
     private static final NearbyVendorResponse RESPONSE = new NearbyVendorResponse(
             List.of(VENDOR), 0, 10, 1, 1
+    );
+
+    private static final FoodSearchResponseDto SEARCH_ITEM = new FoodSearchResponseDto(
+            UUID.randomUUID(), "Security Taco", "Test taco", BigDecimal.valueOf(4.99),
+            "VEG", UUID.randomUUID(), "Security Vendor", "Mexican", BigDecimal.valueOf(4.0)
     );
 
     @BeforeEach
@@ -200,6 +208,102 @@ class DiscoverySecurityTest extends AbstractSecurityTest {
                         .param("lat", "0.0")
                         .param("lng", "0.0")
                         .param("radius", "0.0"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void shouldAllowAnonymousAccessWhenSearchingFoods() throws Exception {
+        when(discoveryService.searchFoods(eq("taco"), eq(null), eq(null), eq(0), eq(20)))
+                .thenReturn(new PageImpl<>(List.of(SEARCH_ITEM)));
+
+        mockMvc.perform(get("/api/search")
+                        .param("keyword", "taco"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void shouldAllowCustomerAccessWhenSearchingFoods() throws Exception {
+        when(discoveryService.searchFoods(eq("taco"), eq(null), eq(null), eq(0), eq(20)))
+                .thenReturn(new PageImpl<>(List.of(SEARCH_ITEM)));
+
+        mockMvc.perform(get("/api/search")
+                        .header("Authorization", "Bearer " + customerToken)
+                        .param("keyword", "taco"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void shouldAllowVendorAccessWhenSearchingFoods() throws Exception {
+        when(discoveryService.searchFoods(eq("taco"), eq(null), eq(null), eq(0), eq(20)))
+                .thenReturn(new PageImpl<>(List.of(SEARCH_ITEM)));
+
+        mockMvc.perform(get("/api/search")
+                        .header("Authorization", "Bearer " + vendorToken)
+                        .param("keyword", "taco"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void shouldAllowAdminAccessWhenSearchingFoods() throws Exception {
+        when(discoveryService.searchFoods(eq("taco"), eq(null), eq(null), eq(0), eq(20)))
+                .thenReturn(new PageImpl<>(List.of(SEARCH_ITEM)));
+
+        mockMvc.perform(get("/api/search")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .param("keyword", "taco"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenKeywordIsBlank() throws Exception {
+        when(discoveryService.searchFoods(eq(""), eq(null), eq(null), eq(0), eq(20)))
+                .thenThrow(new IllegalArgumentException("Keyword is required"));
+
+        mockMvc.perform(get("/api/search")
+                        .param("keyword", ""))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenKeywordIsBlankForAuthenticatedUser() throws Exception {
+        when(discoveryService.searchFoods(eq(""), eq(null), eq(null), eq(0), eq(20)))
+                .thenThrow(new IllegalArgumentException("Keyword is required"));
+
+        mockMvc.perform(get("/api/search")
+                        .header("Authorization", "Bearer " + customerToken)
+                        .param("keyword", ""))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenKeywordIsWhitespace() throws Exception {
+        when(discoveryService.searchFoods(eq("   "), eq(null), eq(null), eq(0), eq(20)))
+                .thenThrow(new IllegalArgumentException("Keyword is required"));
+
+        mockMvc.perform(get("/api/search")
+                        .param("keyword", "   "))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenPageSizeIsZero() throws Exception {
+        when(discoveryService.searchFoods(eq("taco"), eq(null), eq(null), eq(0), eq(0)))
+                .thenThrow(new IllegalArgumentException("Page size must be greater than 0"));
+
+        mockMvc.perform(get("/api/search")
+                        .param("keyword", "taco")
+                        .param("size", "0"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenPageSizeExceedsMaximum() throws Exception {
+        when(discoveryService.searchFoods(eq("taco"), eq(null), eq(null), eq(0), eq(101)))
+                .thenThrow(new IllegalArgumentException("Page size must not exceed 100"));
+
+        mockMvc.perform(get("/api/search")
+                        .param("keyword", "taco")
+                        .param("size", "101"))
                 .andExpect(status().isBadRequest());
     }
 }

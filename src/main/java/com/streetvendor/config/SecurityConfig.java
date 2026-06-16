@@ -44,6 +44,7 @@ public class SecurityConfig {
                                                 .requestMatchers("/api/auth/refresh").permitAll()
                                                 .requestMatchers(HttpMethod.GET, "/api/vendors/nearby").permitAll()
                                                 .requestMatchers(HttpMethod.GET, "/api/vendors/*/menu").permitAll()
+                                                .requestMatchers(HttpMethod.GET, "/api/search").permitAll()
                                                 .requestMatchers(HttpMethod.POST, "/api/vendors").hasRole("VENDOR")
                                                 .requestMatchers(HttpMethod.GET, "/api/vendors/me").hasRole("VENDOR")
                                                 .requestMatchers(HttpMethod.POST, "/api/uploads/**").hasRole("VENDOR")

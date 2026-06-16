@@ -1,7 +1,9 @@
 package com.streetvendor.discovery.service;
 
+import com.streetvendor.discovery.dto.FoodSearchResponseDto;
 import com.streetvendor.discovery.dto.NearbyVendorResponse;
 import com.streetvendor.discovery.dto.VendorMenuResponseDto;
+import org.springframework.data.domain.Page;
 import java.util.UUID;
 
 /**
@@ -29,4 +31,23 @@ public interface DiscoveryService {
     NearbyVendorResponse findNearbyVendors(double latitude, double longitude, double radiusKm, int page, int size);
 
     VendorMenuResponseDto getVendorMenu(UUID vendorId);
+
+    /**
+     * Searches for food items by keyword across all approved vendors,
+     * with optional filters for food type and dietary tag.
+     *
+     * @param keyword    the search keyword (must not be null or blank)
+     * @param foodType   optional food type filter (may be null)
+     * @param dietaryTag optional dietary tag filter (may be null)
+     * @param page       the page number (zero-indexed, defaults to 0 if null)
+     * @param size       the page size (defaults to 20 if null, max 100)
+     * @return a paginated {@link FoodSearchResponseDto} containing matching items
+     * @throws IllegalArgumentException if keyword is null, blank, or whitespace-only
+     */
+    Page<FoodSearchResponseDto> searchFoods(
+            String keyword,
+            String foodType,
+            String dietaryTag,
+            Integer page,
+            Integer size);
 }

@@ -1,10 +1,14 @@
 package com.streetvendor.discovery;
 
+import com.streetvendor.discovery.dto.FoodSearchResponseDto;
 import com.streetvendor.discovery.dto.NearbyVendorResponse;
 import com.streetvendor.discovery.dto.VendorSummaryResponse;
 import com.streetvendor.discovery.service.DiscoveryService;
 import com.streetvendor.support.AbstractIntegrationTest;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
@@ -14,6 +18,7 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -221,6 +226,112 @@ class DiscoveryControllerTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.page").value(0))
                 .andExpect(jsonPath("$.size").value(10));
+    }
+
+    @Test
+    void shouldSearchFoodsSuccessfully() throws Exception {
+        FoodSearchResponseDto item = new FoodSearchResponseDto(
+                UUID.randomUUID(), "Taco", "Delicious taco", BigDecimal.valueOf(5.99),
+                "VEG", UUID.randomUUID(), "Maria's Tacos", "Mexican", BigDecimal.valueOf(4.5));
+        Page<FoodSearchResponseDto> page = new PageImpl<>(List.of(item));
+
+        when(discoveryService.searchFoods(eq("taco"), eq(null), eq(null), eq(0), eq(20)))
+                .thenReturn(page);
+
+        mockMvc.perform(get("/api/search")
+                        .param("keyword", "taco"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].itemName").value("Taco"))
+                .andExpect(jsonPath("$.content[0].price").value(5.99))
+                .andExpect(jsonPath("$.content[0].vendorName").value("Maria's Tacos"));
+    }
+
+    @Test
+    void shouldSearchFoodsWithAllParameters() throws Exception {
+        FoodSearchResponseDto item = new FoodSearchResponseDto(
+                UUID.randomUUID(), "Burger", "Beef burger", BigDecimal.valueOf(8.99),
+                "NON_VEG", UUID.randomUUID(), "Bob's Burgers", "American", BigDecimal.valueOf(4.2));
+        Page<FoodSearchResponseDto> page = new PageImpl<>(List.of(item));
+
+        when(discoveryService.searchFoods(eq("burger"), eq("American"), eq("NON_VEG"), eq(1), eq(5)))
+                .thenReturn(page);
+
+        mockMvc.perform(get("/api/search")
+                        .param("keyword", "burger")
+                        .param("foodType", "American")
+                        .param("dietaryTag", "NON_VEG")
+                        .param("page", "1")
+                        .param("size", "5"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].itemName").value("Burger"))
+                .andExpect(jsonPath("$.content.length()").value(1));
+    }
+
+    @Test
+    void shouldSearchFoodsWithDefaultPageAndSize() throws Exception {
+        FoodSearchResponseDto item = new FoodSearchResponseDto(
+                UUID.randomUUID(), "Pizza", "Cheese pizza", BigDecimal.valueOf(10.99),
+                "VEG", UUID.randomUUID(), "Pizza Place", "Italian", BigDecimal.valueOf(4.8));
+        Page<FoodSearchResponseDto> page = new PageImpl<>(
+                List.of(item), PageRequest.of(0, 20), 1);
+
+        when(discoveryService.searchFoods(eq("pizza"), eq(null), eq(null), eq(0), eq(20)))
+                .thenReturn(page);
+
+        mockMvc.perform(get("/api/search")
+                        .param("keyword", "pizza"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.number").value(0))
+                .andExpect(jsonPath("$.size").value(20));
+    }
+
+    @Test
+    void shouldSearchFoodsReturnEmptyResults() throws Exception {
+        Page<FoodSearchResponseDto> emptyPage = Page.empty();
+
+        when(discoveryService.searchFoods(eq("nonexistent"), eq(null), eq(null), eq(0), eq(20)))
+                .thenReturn(emptyPage);
+
+        mockMvc.perform(get("/api/search")
+                        .param("keyword", "nonexistent"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isEmpty())
+                .andExpect(jsonPath("$.totalElements").value(0));
+    }
+
+    @Test
+    void shouldSearchFoodsReturnPaginationMetadata() throws Exception {
+        List<FoodSearchResponseDto> items = List.of(
+                new FoodSearchResponseDto(UUID.randomUUID(), "Item1", "Desc1", BigDecimal.valueOf(5.00),
+                        "VEG", UUID.randomUUID(), "Vendor", "Type", BigDecimal.valueOf(4.0)),
+                new FoodSearchResponseDto(UUID.randomUUID(), "Item2", "Desc2", BigDecimal.valueOf(6.00),
+                        "VEG", UUID.randomUUID(), "Vendor", "Type", BigDecimal.valueOf(4.0))
+        );
+        Page<FoodSearchResponseDto> page = new PageImpl<>(items, PageRequest.of(0, 5), 2);
+
+        when(discoveryService.searchFoods(eq("test"), eq(null), eq(null), eq(0), eq(5)))
+                .thenReturn(page);
+
+        mockMvc.perform(get("/api/search")
+                        .param("keyword", "test")
+                        .param("page", "0")
+                        .param("size", "5"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.number").value(0))
+                .andExpect(jsonPath("$.size").value(5))
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.totalPages").value(1));
+    }
+
+    @Test
+    void shouldPropagateIllegalArgumentExceptionFromService() throws Exception {
+        when(discoveryService.searchFoods(eq(""), eq(null), eq(null), eq(0), eq(20)))
+                .thenThrow(new IllegalArgumentException("Keyword is required"));
+
+        mockMvc.perform(get("/api/search")
+                        .param("keyword", ""))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

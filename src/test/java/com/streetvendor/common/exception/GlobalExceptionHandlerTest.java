@@ -118,6 +118,23 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void shouldTranslateIllegalArgumentExceptionToBadRequest() throws Exception {
+        MvcResult result = mockMvc.perform(get("/test/illegal-argument"))
+
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").value("Bad argument"))
+                .andExpect(jsonPath("$.timestamp").isString())
+                .andExpect(jsonPath("$.path").value("/test/illegal-argument"))
+                .andReturn();
+
+        String body = result.getResponse().getContentAsString();
+        assertThat(body).doesNotContain("java.lang");
+        assertThat(body).doesNotContain("Exception");
+        assertThat(body).doesNotContain("stacktrace");
+    }
+
+    @Test
     void shouldReturn500ForUnexpectedException() throws Exception {
         MvcResult result = mockMvc.perform(get("/test/error"))
 
@@ -161,6 +178,11 @@ class GlobalExceptionHandlerTest {
         @GetMapping("/test/conflict")
         String testConflict() {
             throw new ConflictException("Duplicate email");
+        }
+
+        @GetMapping("/test/illegal-argument")
+        String testIllegalArgument() {
+            throw new IllegalArgumentException("Bad argument");
         }
 
         @GetMapping("/test/error")

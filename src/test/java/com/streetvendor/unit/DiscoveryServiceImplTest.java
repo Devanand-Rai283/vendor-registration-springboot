@@ -1,7 +1,9 @@
 package com.streetvendor.unit;
 
+import com.streetvendor.discovery.dto.FoodSearchResponseDto;
 import com.streetvendor.discovery.dto.NearbyVendorResponse;
 import com.streetvendor.discovery.dto.VendorSummaryResponse;
+import com.streetvendor.discovery.repository.FoodSearchRepository;
 import com.streetvendor.discovery.service.DiscoveryServiceImpl;
 import com.streetvendor.discovery.util.BoundingBoxCalculator;
 import com.streetvendor.discovery.util.DistanceCalculator;
@@ -17,6 +19,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
@@ -51,11 +54,145 @@ class DiscoveryServiceImplTest {
     @Mock
     private MenuItemRepository menuItemRepository;
 
+    @Mock
+    private FoodSearchRepository foodSearchRepository;
+
     @InjectMocks
     private DiscoveryServiceImpl discoveryService;
 
     @Captor
     private ArgumentCaptor<Pageable> pageableCaptor;
+
+    @Test
+    void shouldRejectNullKeywordWhenSearchingFoods() {
+        assertThatThrownBy(() -> discoveryService.searchFoods(null, null, null, 0, 20))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Keyword is required");
+    }
+
+    @Test
+    void shouldRejectBlankKeywordWhenSearchingFoods() {
+        assertThatThrownBy(() -> discoveryService.searchFoods("", null, null, 0, 20))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Keyword is required");
+    }
+
+    @Test
+    void shouldRejectWhitespaceKeywordWhenSearchingFoods() {
+        assertThatThrownBy(() -> discoveryService.searchFoods("   ", null, null, 0, 20))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Keyword is required");
+    }
+
+    @Test
+    void shouldRejectPageSizeWhenZero() {
+        assertThatThrownBy(() -> discoveryService.searchFoods("chicken", null, null, 0, 0))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Page size must be greater than 0");
+    }
+
+    @Test
+    void shouldRejectPageSizeWhenNegative() {
+        assertThatThrownBy(() -> discoveryService.searchFoods("chicken", null, null, 0, -1))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Page size must be greater than 0");
+    }
+
+    @Test
+    void shouldRejectPageSizeWhenExceedsMaximum() {
+        assertThatThrownBy(() -> discoveryService.searchFoods("chicken", null, null, 0, 101))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Page size must not exceed 100");
+    }
+
+    @Test
+    void shouldAcceptPageSizeWhenAtMaximum() {
+        Page<FoodSearchResponseDto> expectedPage = Page.empty();
+        when(foodSearchRepository.searchFoods(
+                eq("chicken"), eq(null), eq(null), eq(VendorStatus.APPROVED), any()))
+                .thenReturn(expectedPage);
+
+        Page<FoodSearchResponseDto> result = discoveryService.searchFoods("chicken", null, null, 0, 100);
+
+        assertSame(expectedPage, result);
+    }
+
+    @Test
+    void shouldDefaultPageWhenPageIsNull() {
+        when(foodSearchRepository.searchFoods(
+                eq("chicken"), eq(null), eq(null), eq(VendorStatus.APPROVED), pageableCaptor.capture()))
+                .thenReturn(Page.empty());
+
+        discoveryService.searchFoods("chicken", null, null, null, 20);
+
+        Pageable captured = pageableCaptor.getValue();
+        assertEquals(0, captured.getPageNumber());
+    }
+
+    @Test
+    void shouldDefaultSizeWhenSizeIsNull() {
+        when(foodSearchRepository.searchFoods(
+                eq("chicken"), eq(null), eq(null), eq(VendorStatus.APPROVED), pageableCaptor.capture()))
+                .thenReturn(Page.empty());
+
+        discoveryService.searchFoods("chicken", null, null, 0, null);
+
+        Pageable captured = pageableCaptor.getValue();
+        assertEquals(20, captured.getPageSize());
+    }
+
+    @Test
+    void shouldDefaultPageAndSizeWhenPaginationParametersAreNull() {
+        when(foodSearchRepository.searchFoods(
+                eq("chicken"), eq(null), eq(null), eq(VendorStatus.APPROVED), pageableCaptor.capture()))
+                .thenReturn(Page.empty());
+
+        discoveryService.searchFoods("chicken", null, null, null, null);
+
+        Pageable captured = pageableCaptor.getValue();
+        assertEquals(0, captured.getPageNumber());
+        assertEquals(20, captured.getPageSize());
+    }
+
+    @Test
+    void shouldDelegateToRepositoryWithAllFilters() {
+        Page<FoodSearchResponseDto> expectedPage = new PageImpl<>(List.of());
+        when(foodSearchRepository.searchFoods(
+                eq("tacos"), eq("Mexican"), eq("veg"), eq(VendorStatus.APPROVED), any()))
+                .thenReturn(expectedPage);
+
+        Page<FoodSearchResponseDto> result = discoveryService.searchFoods("tacos", "Mexican", "veg", 1, 10);
+
+        assertSame(expectedPage, result);
+        verify(foodSearchRepository).searchFoods(
+                eq("tacos"), eq("Mexican"), eq("veg"), eq(VendorStatus.APPROVED), any());
+    }
+
+    @Test
+    void shouldDelegateToRepositoryWithNullFilters() {
+        when(foodSearchRepository.searchFoods(
+                eq("burger"), eq(null), eq(null), eq(VendorStatus.APPROVED), any()))
+                .thenReturn(Page.empty());
+
+        discoveryService.searchFoods("burger", null, null, 0, 20);
+
+        verify(foodSearchRepository).searchFoods(
+                eq("burger"), eq(null), eq(null), eq(VendorStatus.APPROVED), any());
+    }
+
+    @Test
+    void shouldPassPageableToRepository() {
+        when(foodSearchRepository.searchFoods(
+                eq("pizza"), eq(null), eq(null), eq(VendorStatus.APPROVED), pageableCaptor.capture()))
+                .thenReturn(Page.empty());
+
+        discoveryService.searchFoods("pizza", null, null, 3, 25);
+
+        Pageable captured = pageableCaptor.getValue();
+        assertInstanceOf(PageRequest.class, captured);
+        assertEquals(3, captured.getPageNumber());
+        assertEquals(25, captured.getPageSize());
+    }
 
     private Vendor createVendor(UUID id, String businessName, double lat, double lng, VendorStatus status) {
         Vendor vendor = new Vendor(id, null, businessName);
