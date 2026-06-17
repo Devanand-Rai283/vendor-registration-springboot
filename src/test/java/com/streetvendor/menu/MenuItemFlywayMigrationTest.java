@@ -78,8 +78,8 @@ class MenuItemFlywayMigrationTest {
         assertTrue(existingMigrations.contains("V1__baseline.sql"));
         assertTrue(existingMigrations.contains("V13__create_menu_categories.sql"));
         assertTrue(existingMigrations.contains("V14__create_menu_items.sql"));
-        assertEquals(10, existingMigrations.size(),
-                "Should have exactly 10 migration files (V1-V8 + V13-V14)");
+        assertEquals(12, existingMigrations.size(),
+                "Should have exactly 12 migration files (V1-V8 + V13-V16)");
     }
 
     @Test

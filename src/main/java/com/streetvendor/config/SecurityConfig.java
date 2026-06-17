@@ -48,6 +48,10 @@ public class SecurityConfig {
                                                 .requestMatchers(HttpMethod.POST, "/api/vendors").hasRole("VENDOR")
                                                 .requestMatchers(HttpMethod.GET, "/api/vendors/me").hasRole("VENDOR")
                                                 .requestMatchers(HttpMethod.POST, "/api/uploads/**").hasRole("VENDOR")
+                                                .requestMatchers(HttpMethod.POST, "/api/orders").hasRole("CUSTOMER")
+                                                .requestMatchers(HttpMethod.GET, "/api/orders").hasRole("CUSTOMER")
+                                                .requestMatchers(HttpMethod.PUT, "/api/orders/*/cancel").hasRole("CUSTOMER")
+                                                .requestMatchers(HttpMethod.PUT, "/api/orders/*/status").hasRole("VENDOR")
                                                 .requestMatchers(HttpMethod.POST, "/api/admin/vendors/**")
                                                 .hasRole("ADMIN"));
 

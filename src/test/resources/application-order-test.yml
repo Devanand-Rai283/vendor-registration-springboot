@@ -1,0 +1,27 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:ordertestdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+    open-in-view: false
+  flyway:
+    enabled: false
+  main:
+    allow-bean-definition-overriding: true
+
+jwt:
+  secret: dGhpc0lzQVZlcnlTZWN1dGVLZXlGb3JKV1RUb2tlbkdlbmVyYXRpb24=
+  access-expiration: 900000
+  refresh-expiration: 30
+
+r2:
+  access-key: test-access-key
+  secret-key: test-secret-key
+  bucket-name: test-bucket
+  region: auto
+  endpoint: https://test.r2.cloudflarestorage.com

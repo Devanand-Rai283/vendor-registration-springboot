@@ -13,6 +13,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.Objects;
+import com.streetvendor.order.exception.InvalidOrderStatusTransitionException;
+import com.streetvendor.order.exception.OrderAlreadyFinalizedException;
+import com.streetvendor.order.exception.OrderCancellationNotAllowedException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -74,6 +77,16 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiErrorResponse> handleIllegalArgument(IllegalArgumentException ex, HttpServletRequest request) {
+        ApiErrorResponse body = new ApiErrorResponse(HttpStatus.BAD_REQUEST.value(), ex.getMessage(), request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    @ExceptionHandler({
+            InvalidOrderStatusTransitionException.class,
+            OrderAlreadyFinalizedException.class,
+            OrderCancellationNotAllowedException.class
+    })
+    public ResponseEntity<ApiErrorResponse> handleOrderStateExceptions(RuntimeException ex, HttpServletRequest request) {
         ApiErrorResponse body = new ApiErrorResponse(HttpStatus.BAD_REQUEST.value(), ex.getMessage(), request.getRequestURI());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
