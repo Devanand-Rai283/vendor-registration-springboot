@@ -5,6 +5,8 @@ import com.streetvendor.auth.entity.User;
 import com.streetvendor.common.exception.ForbiddenException;
 import com.streetvendor.common.exception.ResourceNotFoundException;
 import com.streetvendor.common.exception.UnauthorizedException;
+import com.streetvendor.discovery.cache.CacheKeyGenerator;
+import com.streetvendor.discovery.cache.DiscoveryCacheService;
 import com.streetvendor.menu.dto.request.CreateMenuItemRequest;
 import com.streetvendor.menu.dto.request.UpdateMenuItemAvailabilityRequest;
 import com.streetvendor.menu.dto.request.UpdateMenuItemRequest;
@@ -31,13 +33,21 @@ public class MenuItemServiceImpl implements MenuItemService {
     private final MenuItemRepository menuItemRepository;
     private final MenuCategoryRepository menuCategoryRepository;
     private final VendorRepository vendorRepository;
+    private final DiscoveryCacheService discoveryCacheService;
 
     public MenuItemServiceImpl(MenuItemRepository menuItemRepository,
                                MenuCategoryRepository menuCategoryRepository,
-                               VendorRepository vendorRepository) {
+                               VendorRepository vendorRepository,
+                               DiscoveryCacheService discoveryCacheService) {
         this.menuItemRepository = menuItemRepository;
         this.menuCategoryRepository = menuCategoryRepository;
         this.vendorRepository = vendorRepository;
+        this.discoveryCacheService = discoveryCacheService;
+    }
+
+    private void invalidateVendorMenuCache(UUID vendorId) {
+        String cacheKey = CacheKeyGenerator.vendorMenuKey(vendorId);
+        discoveryCacheService.evict(cacheKey);
     }
 
     @Override
@@ -52,7 +62,9 @@ public class MenuItemServiceImpl implements MenuItemService {
         item.setImageUrl(request.getImageUrl());
         item.setAvailable(request.getAvailable() == null || request.getAvailable());
 
-        return toResponse(menuItemRepository.save(item));
+        MenuItemResponse response = toResponse(menuItemRepository.save(item));
+        invalidateVendorMenuCache(vendor.getId());
+        return response;
     }
 
     @Override
@@ -87,7 +99,9 @@ public class MenuItemServiceImpl implements MenuItemService {
         item.setImageUrl(request.getImageUrl());
         item.setAvailable(request.getAvailable());
 
-        return toResponse(menuItemRepository.save(item));
+        MenuItemResponse response = toResponse(menuItemRepository.save(item));
+        invalidateVendorMenuCache(vendor.getId());
+        return response;
     }
 
     @Override
@@ -96,7 +110,9 @@ public class MenuItemServiceImpl implements MenuItemService {
         Vendor vendor = resolveApprovedVendorFromAuth();
         MenuItem item = resolveOwnedItem(itemId, vendor);
         item.setAvailable(request.getAvailable());
-        return toResponse(menuItemRepository.save(item));
+        MenuItemResponse response = toResponse(menuItemRepository.save(item));
+        invalidateVendorMenuCache(vendor.getId());
+        return response;
     }
 
     @Override
@@ -105,6 +121,7 @@ public class MenuItemServiceImpl implements MenuItemService {
         Vendor vendor = resolveApprovedVendorFromAuth();
         MenuItem item = resolveOwnedItem(itemId, vendor);
         menuItemRepository.delete(item);
+        invalidateVendorMenuCache(vendor.getId());
     }
 
     private Vendor resolveApprovedVendorFromAuth() {

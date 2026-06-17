@@ -1,3 +1,20 @@
 spring:
-  profiles:
-    active: local
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      ping-on-startup: false
+
+management:
+  health:
+    redis:
+      enabled: true
+  endpoint:
+    health:
+      show-details: always
+
+discovery:
+  cache:
+    vendor-search-ttl: 600
+    vendor-menu-ttl: 900

@@ -3,6 +3,9 @@ spring:
     url: jdbc:postgresql://localhost:5432/street_vendor
     username: postgres
     password: postgres
+  data:
+    redis:
+      ping-on-startup: true
   flyway:
     enabled: true
   jpa:

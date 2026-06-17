@@ -14,6 +14,9 @@ import com.streetvendor.vendor.dto.VendorStatusResponse;
 import com.streetvendor.vendor.entity.Vendor;
 import com.streetvendor.vendor.enums.VendorStatus;
 import com.streetvendor.vendor.repository.VendorRepository;
+import com.streetvendor.discovery.cache.DiscoveryCacheService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -23,12 +26,20 @@ import java.util.UUID;
 @Service
 public class VendorServiceImpl implements VendorService {
 
+    private static final Logger log = LoggerFactory.getLogger(VendorServiceImpl.class);
     private final VendorRepository vendorRepository;
     private final AuditService auditService;
+    private final DiscoveryCacheService discoveryCacheService;
 
-    public VendorServiceImpl(VendorRepository vendorRepository, AuditService auditService) {
+    public VendorServiceImpl(VendorRepository vendorRepository, AuditService auditService, DiscoveryCacheService discoveryCacheService) {
         this.vendorRepository = vendorRepository;
         this.auditService = auditService;
+        this.discoveryCacheService = discoveryCacheService;
+    }
+
+    private void invalidateVendorSearchCaches() {
+        discoveryCacheService.evictPattern("search:vendors:*");
+        log.debug("Vendor discovery cache invalidated");
     }
 
     @Override
@@ -109,6 +120,7 @@ public class VendorServiceImpl implements VendorService {
 
         vendor.setStatus(VendorStatus.APPROVED);
         Vendor savedVendor = vendorRepository.save(vendor);
+        invalidateVendorSearchCaches();
 
         auditService.logEvent(AuditEventType.VENDOR_APPROVED, savedVendor.getId(), getCurrentAdminUserId(), null);
 
@@ -130,6 +142,7 @@ public class VendorServiceImpl implements VendorService {
         vendor.setStatus(VendorStatus.REJECTED);
         vendor.setRejectionReason(reason);
         Vendor savedVendor = vendorRepository.save(vendor);
+        invalidateVendorSearchCaches();
 
         auditService.logEvent(AuditEventType.VENDOR_REJECTED, savedVendor.getId(), getCurrentAdminUserId(), reason);
 

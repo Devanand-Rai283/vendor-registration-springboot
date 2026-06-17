@@ -3,6 +3,9 @@ spring:
     url: ${DATASOURCE_URL}
     username: ${DATASOURCE_USERNAME}
     password: ${DATASOURCE_PASSWORD}
+  data:
+    redis:
+      ping-on-startup: true
   flyway:
     enabled: true
   jpa:

@@ -7,6 +7,7 @@ spring:
     redis:
       host: localhost
       port: 6379
+      ping-on-startup: false
   flyway:
     enabled: true
   jpa:

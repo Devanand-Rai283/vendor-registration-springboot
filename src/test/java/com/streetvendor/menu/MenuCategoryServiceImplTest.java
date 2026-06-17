@@ -6,6 +6,8 @@ import com.streetvendor.common.exception.ConflictException;
 import com.streetvendor.common.exception.ForbiddenException;
 import com.streetvendor.common.exception.ResourceNotFoundException;
 import com.streetvendor.common.exception.UnauthorizedException;
+import com.streetvendor.discovery.cache.CacheKeyGenerator;
+import com.streetvendor.discovery.cache.DiscoveryCacheService;
 import com.streetvendor.menu.dto.request.CreateMenuCategoryRequest;
 import com.streetvendor.menu.dto.request.UpdateMenuCategoryRequest;
 import com.streetvendor.menu.dto.response.MenuCategoryResponse;
@@ -47,6 +49,9 @@ class MenuCategoryServiceImplTest {
 
     @Mock
     private VendorRepository vendorRepository;
+
+    @Mock
+    private DiscoveryCacheService discoveryCacheService;
 
     @InjectMocks
     private MenuCategoryServiceImpl menuCategoryService;
@@ -123,6 +128,7 @@ class MenuCategoryServiceImplTest {
         assertEquals("Snacks", response.getName());
         assertEquals(1, response.getDisplayOrder());
         verify(menuCategoryRepository).save(any(MenuCategory.class));
+        verify(discoveryCacheService).evict(CacheKeyGenerator.vendorMenuKey(vendorId));
     }
 
     @Test
@@ -243,6 +249,7 @@ class MenuCategoryServiceImplTest {
         assertEquals("Fresh Snacks", response.getName());
         assertEquals(2, response.getDisplayOrder());
         verify(menuCategoryRepository).save(category);
+        verify(discoveryCacheService).evict(CacheKeyGenerator.vendorMenuKey(vendorId));
     }
 
     @Test
@@ -295,6 +302,7 @@ class MenuCategoryServiceImplTest {
         assertEquals("Snacks", response.getName());
         assertEquals(2, response.getDisplayOrder());
         verify(menuCategoryRepository).save(category);
+        verify(discoveryCacheService).evict(CacheKeyGenerator.vendorMenuKey(vendorId));
     }
 
     @Test
@@ -308,6 +316,7 @@ class MenuCategoryServiceImplTest {
         menuCategoryService.deleteCategory(categoryId);
 
         verify(menuCategoryRepository).delete(category);
+        verify(discoveryCacheService).evict(CacheKeyGenerator.vendorMenuKey(vendorId));
     }
 
     @Test

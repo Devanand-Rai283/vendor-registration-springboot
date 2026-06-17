@@ -1,5 +1,10 @@
 package com.streetvendor.discovery.service;
 
+import com.streetvendor.discovery.cache.CacheKeyGenerator;
+import com.streetvendor.discovery.cache.DiscoveryCacheService;
+import com.streetvendor.discovery.config.DiscoveryCacheProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.streetvendor.common.exception.ResourceNotFoundException;
 import com.streetvendor.discovery.dto.BoundingBox;
 import com.streetvendor.discovery.dto.FoodSearchResponseDto;
@@ -23,9 +28,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -57,25 +64,47 @@ import java.util.stream.Collectors;
 @Service
 public class DiscoveryServiceImpl implements DiscoveryService {
 
+    private static final Logger log = LoggerFactory.getLogger(DiscoveryServiceImpl.class);
     private final VendorRepository vendorRepository;
     private final MenuCategoryRepository menuCategoryRepository;
     private final MenuItemRepository menuItemRepository;
     private final FoodSearchRepository foodSearchRepository;
+    private final DiscoveryCacheService discoveryCacheService;
+    private final DiscoveryCacheProperties cacheProperties;
 
     public DiscoveryServiceImpl(
             VendorRepository vendorRepository,
             MenuCategoryRepository menuCategoryRepository,
             MenuItemRepository menuItemRepository,
-            FoodSearchRepository foodSearchRepository) {
+            FoodSearchRepository foodSearchRepository,
+            DiscoveryCacheService discoveryCacheService,
+            DiscoveryCacheProperties cacheProperties) {
         this.vendorRepository = vendorRepository;
         this.menuCategoryRepository = menuCategoryRepository;
         this.menuItemRepository = menuItemRepository;
         this.foodSearchRepository = foodSearchRepository;
+        this.discoveryCacheService = discoveryCacheService;
+        this.cacheProperties = cacheProperties;
     }
 
     @Override
     public NearbyVendorResponse findNearbyVendors(double latitude, double longitude, double radiusKm, int page,
             int size) {
+        String cacheKey = CacheKeyGenerator.vendorSearchKey(latitude, longitude, radiusKm);
+
+        // Cache Lookup
+        Optional<List> cachedResult = discoveryCacheService.get(cacheKey, List.class);
+        if (cachedResult.isPresent()) {
+            log.debug("Cache hit for nearby vendor search. Key: {}", cacheKey);
+            @SuppressWarnings("unchecked")
+            List<VendorSummaryResponse> results = (List<VendorSummaryResponse>) cachedResult.get();
+            // In-memory pagination for cached results
+            return paginateInMemory(results, page, size);
+        }
+
+        log.debug("Cache miss for nearby vendor search. Key: {}", cacheKey);
+
+        // On cache miss, execute the original logic
         BoundingBox box = BoundingBoxCalculator.calculate(latitude, longitude, radiusKm);
 
         Page<Vendor> vendorPage = vendorRepository.findByStatusAndLatitudeBetweenAndLongitudeBetween(
@@ -98,13 +127,22 @@ public class DiscoveryServiceImpl implements DiscoveryService {
                 .sorted(Comparator.comparingDouble(VendorSummaryResponse::distanceKm))
                 .toList();
 
-        int totalElements = allWithinRadius.size();
+        // Cache Population
+        discoveryCacheService.put(cacheKey, allWithinRadius, cacheProperties.getVendorSearchTtl());
+        log.debug("Cache store for nearby vendor search. Key: {}, TTL: {}s", cacheKey,
+                cacheProperties.getVendorSearchTtl().getSeconds());
+
+        return paginateInMemory(allWithinRadius, page, size);
+    }
+
+    private NearbyVendorResponse paginateInMemory(List<VendorSummaryResponse> results, int page, int size) {
+        int totalElements = results.size();
         int totalPages = calculateTotalPages(totalElements, size);
         int fromIndex = page * size;
         int toIndex = Math.min(fromIndex + size, totalElements);
 
         List<VendorSummaryResponse> pageContent = fromIndex < totalElements
-                ? allWithinRadius.subList(fromIndex, toIndex)
+                ? results.subList(fromIndex, toIndex)
                 : List.of();
 
         return new NearbyVendorResponse(pageContent, page, size, totalElements, totalPages);
@@ -229,6 +267,16 @@ public class DiscoveryServiceImpl implements DiscoveryService {
     }
 
     public VendorMenuResponseDto getVendorMenu(UUID vendorId) {
+        String cacheKey = CacheKeyGenerator.vendorMenuKey(vendorId);
+
+        // 1. Cache Lookup
+        Optional<VendorMenuResponseDto> cachedMenu = discoveryCacheService.get(cacheKey, VendorMenuResponseDto.class);
+        if (cachedMenu.isPresent()) {
+            log.debug("Cache hit for vendor menu. Key: {}", cacheKey);
+            return cachedMenu.get();
+        }
+        log.debug("Cache miss for vendor menu. Key: {}", cacheKey);
+
         Vendor vendor = getVendorOrThrow(vendorId);
         validateVendorApproved(vendor);
 
@@ -262,10 +310,17 @@ public class DiscoveryServiceImpl implements DiscoveryService {
                 })
                 .toList();
 
-        return new VendorMenuResponseDto(
+        VendorMenuResponseDto menuResponse = new VendorMenuResponseDto(
                 vendor.getId(),
                 vendor.getBusinessName(),
                 categoryDtos);
+
+        // 3. Cache Population
+        Duration ttl = cacheProperties.getVendorMenuTtl();
+        discoveryCacheService.put(cacheKey, menuResponse, ttl);
+        log.debug("Cache store for vendor menu. Key: {}, TTL: {}s", cacheKey, ttl.getSeconds());
+
+        return menuResponse;
     }
 
     private static int calculateTotalPages(int totalElements, int pageSize) {

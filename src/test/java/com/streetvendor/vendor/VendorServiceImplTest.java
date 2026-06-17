@@ -14,6 +14,7 @@ import com.streetvendor.vendor.entity.Vendor;
 import com.streetvendor.vendor.enums.VendorStatus;
 import com.streetvendor.vendor.repository.VendorRepository;
 import com.streetvendor.vendor.service.VendorServiceImpl;
+import com.streetvendor.discovery.cache.DiscoveryCacheService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,6 +48,9 @@ class VendorServiceImplTest {
 
     @Mock
     private AuditService auditService;
+
+    @Mock
+    private DiscoveryCacheService discoveryCacheService;
 
     @InjectMocks
     private VendorServiceImpl vendorService;
@@ -215,6 +219,7 @@ class VendorServiceImplTest {
         assertEquals("Vendor approved successfully.", response.message());
         verify(vendorRepository).save(pendingVendor);
         assertEquals(VendorStatus.APPROVED, pendingVendor.getStatus());
+        verify(discoveryCacheService).evictPattern("search:vendors:*");
         verify(auditService).logEvent(AuditEventType.VENDOR_APPROVED, vendorId, null, null);
     }
 
@@ -285,6 +290,7 @@ class VendorServiceImplTest {
         verify(vendorRepository).save(pendingVendor);
         assertEquals(VendorStatus.REJECTED, pendingVendor.getStatus());
         assertEquals("Expired FSSAI certificate", pendingVendor.getRejectionReason());
+        verify(discoveryCacheService).evictPattern("search:vendors:*");
         verify(auditService).logEvent(AuditEventType.VENDOR_REJECTED, vendorId, null, "Expired FSSAI certificate");
     }
 

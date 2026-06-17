@@ -34,6 +34,11 @@ import com.streetvendor.menu.repository.MenuItemRepository;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import com.streetvendor.discovery.cache.DiscoveryCacheService;
+import com.streetvendor.discovery.config.DiscoveryCacheProperties;
+import org.junit.jupiter.api.BeforeEach;
+import java.time.Duration;
+import static org.mockito.Mockito.lenient;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -57,11 +62,23 @@ class DiscoveryServiceImplTest {
     @Mock
     private FoodSearchRepository foodSearchRepository;
 
+    @Mock
+    private DiscoveryCacheService discoveryCacheService;
+
+    @Mock
+    private DiscoveryCacheProperties cacheProperties;
+
     @InjectMocks
     private DiscoveryServiceImpl discoveryService;
 
     @Captor
     private ArgumentCaptor<Pageable> pageableCaptor;
+
+    @BeforeEach
+    void setUp() {
+        lenient().when(cacheProperties.getVendorSearchTtl()).thenReturn(Duration.ofMinutes(5));
+        lenient().when(cacheProperties.getVendorMenuTtl()).thenReturn(Duration.ofMinutes(30));
+    }
 
     @Test
     void shouldRejectNullKeywordWhenSearchingFoods() {

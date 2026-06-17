@@ -6,6 +6,8 @@ import com.streetvendor.common.exception.ConflictException;
 import com.streetvendor.common.exception.ForbiddenException;
 import com.streetvendor.common.exception.ResourceNotFoundException;
 import com.streetvendor.common.exception.UnauthorizedException;
+import com.streetvendor.discovery.cache.CacheKeyGenerator;
+import com.streetvendor.discovery.cache.DiscoveryCacheService;
 import com.streetvendor.menu.dto.request.CreateMenuCategoryRequest;
 import com.streetvendor.menu.dto.request.UpdateMenuCategoryRequest;
 import com.streetvendor.menu.dto.response.MenuCategoryResponse;
@@ -27,11 +29,19 @@ public class MenuCategoryServiceImpl implements MenuCategoryService {
 
     private final MenuCategoryRepository menuCategoryRepository;
     private final VendorRepository vendorRepository;
+    private final DiscoveryCacheService discoveryCacheService;
 
     public MenuCategoryServiceImpl(MenuCategoryRepository menuCategoryRepository,
-                                   VendorRepository vendorRepository) {
+                                   VendorRepository vendorRepository,
+                                   DiscoveryCacheService discoveryCacheService) {
         this.menuCategoryRepository = menuCategoryRepository;
         this.vendorRepository = vendorRepository;
+        this.discoveryCacheService = discoveryCacheService;
+    }
+
+    private void invalidateVendorMenuCache(UUID vendorId) {
+        String cacheKey = CacheKeyGenerator.vendorMenuKey(vendorId);
+        discoveryCacheService.evict(cacheKey);
     }
 
     @Override
@@ -51,6 +61,7 @@ public class MenuCategoryServiceImpl implements MenuCategoryService {
         );
 
         MenuCategory savedCategory = menuCategoryRepository.save(category);
+        invalidateVendorMenuCache(vendor.getId());
         return toResponse(savedCategory);
     }
 
@@ -71,6 +82,7 @@ public class MenuCategoryServiceImpl implements MenuCategoryService {
         category.setDisplayOrder(request.getDisplayOrder());
 
         MenuCategory updatedCategory = menuCategoryRepository.save(category);
+        invalidateVendorMenuCache(vendor.getId());
         return toResponse(updatedCategory);
     }
 
@@ -83,6 +95,7 @@ public class MenuCategoryServiceImpl implements MenuCategoryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
 
         menuCategoryRepository.delete(category);
+        invalidateVendorMenuCache(vendor.getId());
     }
 
     @Override
