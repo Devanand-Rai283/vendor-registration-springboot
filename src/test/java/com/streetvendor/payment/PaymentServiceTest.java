@@ -155,7 +155,7 @@ class PaymentServiceTest {
     }
 
     @Test
-    void shouldThrowResourceNotFoundExceptionWhenOrderDoesNotExist() {
+    void shouldThrowResourceNotFoundExceptionWhenOrderDoesNotExistOnCreation() {
         assertThrows(ResourceNotFoundException.class, () -> 
             paymentService.createPaymentOrder(UUID.randomUUID(), customerUser)
         );
@@ -255,7 +255,7 @@ class PaymentServiceTest {
     }
 
     @Test
-    void shouldThrowResourceNotFoundExceptionWhenOrderDoesNotExist() {
+    void shouldThrowResourceNotFoundExceptionWhenOrderDoesNotExistOnVerification() {
         assertThrows(ResourceNotFoundException.class, () ->
                 paymentService.verifyPaymentStatus(UUID.randomUUID(), customerUser)
         );
