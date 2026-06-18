@@ -41,3 +41,8 @@ r2:
   bucket-name: test-bucket
   region: auto
   endpoint: https://test.r2.cloudflarestorage.com
+
+razorpay:
+  key-id: test-razorpay-key-id
+  key-secret: test-razorpay-key-secret
+  webhook-secret: test-webhook-secret

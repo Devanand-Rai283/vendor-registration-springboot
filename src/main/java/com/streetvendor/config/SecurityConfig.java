@@ -51,6 +51,9 @@ public class SecurityConfig {
                                                 .requestMatchers(HttpMethod.POST, "/api/orders").hasRole("CUSTOMER")
                                                 .requestMatchers(HttpMethod.GET, "/api/orders").hasRole("CUSTOMER")
                                                 .requestMatchers(HttpMethod.PUT, "/api/orders/*/cancel").hasRole("CUSTOMER")
+                                                .requestMatchers(HttpMethod.POST, "/api/payments/create-order").hasRole("CUSTOMER")
+                                                .requestMatchers(HttpMethod.GET, "/api/payments/orders/*/verify").hasRole("CUSTOMER")
+                                                .requestMatchers(HttpMethod.POST, "/api/payments/webhook").permitAll()
                                                 .requestMatchers(HttpMethod.PUT, "/api/orders/*/status").hasRole("VENDOR")
                                                 .requestMatchers(HttpMethod.POST, "/api/admin/vendors/**")
                                                 .hasRole("ADMIN"));
