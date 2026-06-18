@@ -38,11 +38,11 @@ public class PaymentController {
     private final AuditService auditService;
 
     public PaymentController(PaymentService paymentService,
-                             PaymentWebhookService paymentWebhookService,
-                             WebhookSignatureVerifier signatureVerifier,
-                             WebhookConfig webhookConfig,
-                             ObjectMapper objectMapper,
-                             AuditService auditService) {
+            PaymentWebhookService paymentWebhookService,
+            WebhookSignatureVerifier signatureVerifier,
+            WebhookConfig webhookConfig,
+            ObjectMapper objectMapper,
+            AuditService auditService) {
         this.paymentService = paymentService;
         this.paymentWebhookService = paymentWebhookService;
         this.signatureVerifier = signatureVerifier;
@@ -52,7 +52,7 @@ public class PaymentController {
     }
 
     // ------------------------------------------------------------------ //
-    // POST /api/payments/create-order                                     //
+    // POST /api/payments/create-order //
     // ------------------------------------------------------------------ //
 
     @PostMapping("/create-order")
@@ -65,7 +65,7 @@ public class PaymentController {
     }
 
     // ------------------------------------------------------------------ //
-    // GET /api/payments/orders/{orderId}/verify                            //
+    // GET /api/payments/orders/{orderId}/verify //
     // ------------------------------------------------------------------ //
 
     @GetMapping("/orders/{orderId}/verify")
@@ -78,9 +78,9 @@ public class PaymentController {
     }
 
     // ------------------------------------------------------------------ //
-    // POST /api/payments/webhook                                          //
-    // Publicly accessible endpoint — protected by HMAC, not JWT.         //
-    // Signature verification MUST happen before any business logic.      //
+    // POST /api/payments/webhook //
+    // Publicly accessible endpoint — protected by HMAC, not JWT. //
+    // Signature verification MUST happen before any business logic. //
     // ------------------------------------------------------------------ //
 
     @PostMapping("/webhook")
@@ -95,7 +95,8 @@ public class PaymentController {
         // 1. Capture raw body before any deserialization (HMAC requires exact bytes)
         byte[] rawBody = request.getInputStream().readAllBytes();
 
-        // 2. Verify HMAC-SHA256 signature — throws UnauthorizedException (HTTP 401) on failure
+        // 2. Verify HMAC-SHA256 signature — throws UnauthorizedException (HTTP 401) on
+        // failure
         try {
             signatureVerifier.verify(rawBody, signature, webhookConfig.getWebhookSecret());
         } catch (UnauthorizedException ex) {
@@ -103,8 +104,7 @@ public class PaymentController {
                     com.streetvendor.common.audit.AuditEventType.PAYMENT_VERIFICATION_FAILED,
                     null,
                     null,
-                    "Webhook signature verification failed"
-            );
+                    "Webhook signature verification failed");
             throw ex;
         }
 
@@ -119,10 +119,10 @@ public class PaymentController {
         }
 
         RazorpayWebhookEvent.Entity entity = event.getPayload().getPayment().getEntity();
-        String razorpayOrderId   = entity.getOrder_id();
+        String razorpayOrderId = entity.getOrder_id();
         String razorpayPaymentId = entity.getId();
-        Long   amountInPaise     = entity.getAmount();
-        String currency          = entity.getCurrency();
+        Long amountInPaise = entity.getAmount();
+        String currency = entity.getCurrency();
 
         // 4. Delegate to service — always return 200 so Razorpay does not retry
         paymentWebhookService.processEvent(
