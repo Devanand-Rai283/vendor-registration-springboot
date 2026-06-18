@@ -39,6 +39,9 @@ class JwtAuthenticationFilterTest {
     private UserRepository userRepository;
 
     @Mock
+    private org.springframework.data.redis.core.RedisTemplate<String, Object> redisTemplate;
+
+    @Mock
     private HttpServletRequest request;
 
     @Mock
@@ -54,7 +57,9 @@ class JwtAuthenticationFilterTest {
 
     @BeforeEach
     void setUp() {
-        filter = new JwtAuthenticationFilter(jwtService, userRepository);
+        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper()
+                .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+        filter = new JwtAuthenticationFilter(jwtService, userRepository, redisTemplate, mapper);
         userId = UUID.randomUUID();
         testUser = new User(userId, "test@example.com", "passwordHash", Role.CUSTOMER, AccountStatus.ACTIVE);
     }
@@ -150,5 +155,26 @@ class JwtAuthenticationFilterTest {
         verify(filterChain).doFilter(request, response);
         verify(userRepository, never()).findById(userId);
         assertEquals(existingAuth, SecurityContextHolder.getContext().getAuthentication());
+    }
+
+    @Test
+    void shouldRejectRequestWhenUserIsSuspended() throws Exception {
+        String token = "valid-token";
+        when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
+        when(jwtService.validateToken(token)).thenReturn(true);
+        when(jwtService.extractUserId(token)).thenReturn(userId.toString());
+        when(jwtService.extractEmail(token)).thenReturn("test@example.com");
+        when(jwtService.extractRole(token)).thenReturn("CUSTOMER");
+
+        when(redisTemplate.hasKey("suspended_users:" + userId)).thenReturn(true);
+        jakarta.servlet.ServletOutputStream outputStream = org.mockito.Mockito.mock(jakarta.servlet.ServletOutputStream.class);
+        when(response.getOutputStream()).thenReturn(outputStream);
+
+        filter.doFilterInternal(request, response, filterChain);
+
+        verify(response).setStatus(HttpServletResponse.SC_FORBIDDEN);
+        verify(response).setContentType("application/json");
+        verify(filterChain, never()).doFilter(request, response);
+        assertNull(SecurityContextHolder.getContext().getAuthentication());
     }
 }

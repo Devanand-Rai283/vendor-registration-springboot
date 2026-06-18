@@ -56,8 +56,8 @@ public class SecurityConfig {
                                                 .requestMatchers(HttpMethod.GET, "/api/payments/orders/*/verify").hasRole("CUSTOMER")
                                                 .requestMatchers(HttpMethod.POST, "/api/payments/webhook").permitAll()
                                                 .requestMatchers(HttpMethod.PUT, "/api/orders/*/status").hasRole("VENDOR")
-                                                .requestMatchers(HttpMethod.POST, "/api/admin/vendors/**")
-                                                .hasRole("ADMIN"));
+                                                .requestMatchers(HttpMethod.GET, "/api/admin/dashboard").hasRole("ADMIN")
+                                                .requestMatchers("/api/admin/vendors/**").hasRole("ADMIN"));
 
                 if (!isProductionProfile()) {
                         auth = auth.authorizeHttpRequests(authBuilder -> authBuilder

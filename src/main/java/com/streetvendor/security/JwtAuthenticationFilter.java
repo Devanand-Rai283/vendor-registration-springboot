@@ -20,10 +20,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final UserRepository userRepository;
+    private final org.springframework.data.redis.core.RedisTemplate<String, Object> redisTemplate;
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
-    public JwtAuthenticationFilter(JwtService jwtService, UserRepository userRepository) {
+    public JwtAuthenticationFilter(JwtService jwtService,
+                                   UserRepository userRepository,
+                                   org.springframework.data.redis.core.RedisTemplate<String, Object> redisTemplate,
+                                   @org.springframework.context.annotation.Lazy com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
         this.jwtService = jwtService;
         this.userRepository = userRepository;
+        this.redisTemplate = redisTemplate;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -46,6 +53,32 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String userId = jwtService.extractUserId(token);
         String email = jwtService.extractEmail(token);
         String role = jwtService.extractRole(token);
+
+        if (userId != null) {
+            boolean isSuspended = false;
+            try {
+                Boolean isSuspendedRedis = redisTemplate.hasKey("suspended_users:" + userId);
+                if (Boolean.TRUE.equals(isSuspendedRedis)) {
+                    isSuspended = true;
+                }
+            } catch (Exception e) {
+                isSuspended = userRepository.findById(UUID.fromString(userId))
+                        .map(user -> user.getAccountStatus() == com.streetvendor.auth.entity.AccountStatus.SUSPENDED)
+                        .orElse(false);
+            }
+
+            if (isSuspended) {
+                com.streetvendor.common.response.ApiErrorResponse errorResponse = new com.streetvendor.common.response.ApiErrorResponse(
+                        HttpServletResponse.SC_FORBIDDEN,
+                        "User account is suspended.",
+                        request.getRequestURI());
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                response.setContentType("application/json");
+                response.setCharacterEncoding("UTF-8");
+                objectMapper.writeValue(response.getOutputStream(), errorResponse);
+                return;
+            }
+        }
 
         if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             userRepository.findById(UUID.fromString(userId)).ifPresent(user -> {

@@ -17,6 +17,16 @@ public interface VendorRepository extends JpaRepository<Vendor, UUID> {
     Optional<Vendor> findByUserId(UUID userId);
 
     /**
+     * Counts vendor profiles that have the given status.
+     *
+     * <p>Used by the admin dashboard to compute pending-approval totals.
+     *
+     * @param status the vendor status to match
+     * @return count of vendors with the specified status
+     */
+    long countByStatus(VendorStatus status);
+
+    /**
      * Retrieves a page of APPROVED vendors whose geographic coordinates fall
      * within the specified bounding box.
      * <p>
@@ -46,4 +56,6 @@ public interface VendorRepository extends JpaRepository<Vendor, UUID> {
             BigDecimal maxLongitude,
             Pageable pageable
     );
+
+    Page<Vendor> findByStatus(VendorStatus status, Pageable pageable);
 }
