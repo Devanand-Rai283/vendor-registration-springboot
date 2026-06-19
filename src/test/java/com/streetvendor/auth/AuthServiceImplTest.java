@@ -10,14 +10,17 @@ import com.streetvendor.auth.entity.Role;
 import com.streetvendor.auth.entity.User;
 import com.streetvendor.auth.repository.UserRepository;
 import com.streetvendor.auth.service.AuthServiceImpl;
-import com.streetvendor.auth.service.LockService;
 import com.streetvendor.auth.service.RefreshTokenService;
 import com.streetvendor.auth.service.RotateResult;
+import com.streetvendor.common.audit.AuditEventType;
+import com.streetvendor.common.audit.AuditService;
 import com.streetvendor.common.exception.ConflictException;
 import com.streetvendor.common.exception.ForbiddenException;
 import com.streetvendor.common.exception.UnauthorizedException;
 import com.streetvendor.customer.service.CustomerService;
 import com.streetvendor.security.JwtService;
+import com.streetvendor.security.lockout.AccountLockedException;
+import com.streetvendor.security.lockout.AccountLockoutService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,6 +36,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -60,7 +64,10 @@ class AuthServiceImplTest {
     private RefreshTokenService refreshTokenService;
 
     @Mock
-    private LockService lockService;
+    private AccountLockoutService accountLockoutService;
+
+    @Mock
+    private AuditService auditService;
 
     @InjectMocks
     private AuthServiceImpl authService;
@@ -264,6 +271,7 @@ class AuthServiceImplTest {
 
     @Test
     void shouldLoginSuccessfully() {
+        when(accountLockoutService.isLocked("user@example.com")).thenReturn(false);
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(activeUser));
         when(passwordEncoder.matches("Password1!", "$2a$12$encodedHash")).thenReturn(true);
         when(jwtService.generateAccessToken(any(UUID.class), eq("user@example.com"), eq("CUSTOMER")))
@@ -276,11 +284,15 @@ class AuthServiceImplTest {
         assertEquals("jwt-token", result.response().accessToken());
         assertEquals("Bearer", result.response().tokenType());
         assertEquals("raw-refresh-token", result.refreshToken());
+        verify(accountLockoutService).clearLockout("user@example.com");
+        verify(auditService).logEvent(eq(AuditEventType.LOGIN_ATTEMPT), eq(activeUser.getId()), anyString());
+        verify(auditService).logEvent(eq(AuditEventType.LOGIN_SUCCESS), eq(activeUser.getId()), anyString());
         verify(refreshTokenService).generateRefreshToken(any(UUID.class));
     }
 
     @Test
     void shouldRejectInvalidEmail() {
+        when(accountLockoutService.isLocked("nonexistent@example.com")).thenReturn(false);
         when(userRepository.findByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
 
         LoginRequest invalidRequest = new LoginRequest("nonexistent@example.com", "Password1!");
@@ -294,6 +306,7 @@ class AuthServiceImplTest {
 
     @Test
     void shouldRejectInvalidPassword() {
+        when(accountLockoutService.isLocked("user@example.com")).thenReturn(false);
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(activeUser));
         when(passwordEncoder.matches("WrongPassword!", "$2a$12$encodedHash")).thenReturn(false);
 
@@ -304,10 +317,13 @@ class AuthServiceImplTest {
         });
 
         assertEquals("Invalid email or password.", exception.getMessage());
+        verify(accountLockoutService).recordFailedAttempt("user@example.com");
+        verify(auditService).logEvent(eq(AuditEventType.LOGIN_FAILED), eq(activeUser.getId()), anyString());
     }
 
     @Test
     void shouldRejectSuspendedAccount() {
+        when(accountLockoutService.isLocked("suspended@example.com")).thenReturn(false);
         when(userRepository.findByEmail("suspended@example.com")).thenReturn(Optional.of(suspendedUser));
         when(passwordEncoder.matches("Password1!", "$2a$12$encodedHash")).thenReturn(true);
 
@@ -322,19 +338,21 @@ class AuthServiceImplTest {
 
     @Test
     void shouldRejectLockedAccount() {
-        when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(activeUser));
-        when(passwordEncoder.matches("Password1!", "$2a$12$encodedHash")).thenReturn(true);
-        when(lockService.isLocked("user@example.com")).thenReturn(true);
+        when(accountLockoutService.isLocked("user@example.com")).thenReturn(true);
+        when(accountLockoutService.getRemainingLockDurationSeconds("user@example.com")).thenReturn(300L);
 
-        ForbiddenException exception = assertThrows(ForbiddenException.class, () -> {
+        AccountLockedException exception = assertThrows(AccountLockedException.class, () -> {
             authService.login(loginRequest);
         });
 
-        assertEquals("Account is locked.", exception.getMessage());
+        assertTrue(exception.getMessage().contains("Account temporarily locked"));
+        verify(accountLockoutService, never()).clearLockout(anyString());
+        verify(userRepository, never()).findByEmail(anyString());
     }
 
     @Test
     void shouldPersistRefreshTokenOnLogin() {
+        when(accountLockoutService.isLocked("user@example.com")).thenReturn(false);
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(activeUser));
         when(passwordEncoder.matches("Password1!", "$2a$12$encodedHash")).thenReturn(true);
         when(jwtService.generateAccessToken(any(UUID.class), eq("user@example.com"), eq("CUSTOMER")))
@@ -344,6 +362,23 @@ class AuthServiceImplTest {
         authService.login(loginRequest);
 
         verify(refreshTokenService).generateRefreshToken(activeUser.getId());
+    }
+
+    @Test
+    void shouldThrowAccountLockedWhenThresholdReached() {
+        when(accountLockoutService.isLocked("user@example.com")).thenReturn(false).thenReturn(true);
+        when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(activeUser));
+        when(passwordEncoder.matches("Password1!", "$2a$12$encodedHash")).thenReturn(false);
+        when(accountLockoutService.getRemainingLockDurationSeconds("user@example.com")).thenReturn(900L);
+
+        LoginRequest req = new LoginRequest("user@example.com", "Password1!");
+
+        AccountLockedException exception = assertThrows(AccountLockedException.class, () -> authService.login(req));
+        assertTrue(exception.getMessage().contains("Account temporarily locked"));
+        verify(accountLockoutService).recordFailedAttempt("user@example.com");
+        verify(auditService).logEvent(eq(AuditEventType.LOGIN_FAILED), eq(activeUser.getId()), anyString());
+        verify(auditService).logEvent(eq(AuditEventType.ACCOUNT_LOCKED), eq(activeUser.getId()), anyString());
+        verify(accountLockoutService, never()).clearLockout(anyString());
     }
 
     @Test

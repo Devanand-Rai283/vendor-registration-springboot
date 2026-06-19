@@ -14,6 +14,11 @@ spring:
     hibernate:
       ddl-auto: validate
 
+account:
+  lock:
+    threshold: 5
+    duration-minutes: 1
+
 springdoc:
   api-docs:
     path: /api/docs

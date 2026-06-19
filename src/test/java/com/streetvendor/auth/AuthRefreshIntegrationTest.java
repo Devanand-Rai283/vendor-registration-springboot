@@ -12,6 +12,7 @@ import com.streetvendor.auth.repository.UserRepository;
 import com.streetvendor.security.JwtService;
 import com.streetvendor.support.AbstractIntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
+import org.springframework.context.annotation.Import;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -34,6 +35,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @ActiveProfiles("auth-test")
 @Transactional
+@Import(AuthTestRedisConfig.class)
 class AuthRefreshIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired

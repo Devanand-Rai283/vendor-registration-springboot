@@ -9,11 +9,15 @@ import com.streetvendor.auth.entity.AccountStatus;
 import com.streetvendor.auth.entity.Role;
 import com.streetvendor.auth.entity.User;
 import com.streetvendor.auth.repository.UserRepository;
+import com.streetvendor.common.audit.AuditEventType;
+import com.streetvendor.common.audit.AuditService;
 import com.streetvendor.common.exception.ConflictException;
 import com.streetvendor.common.exception.ForbiddenException;
 import com.streetvendor.common.exception.UnauthorizedException;
 import com.streetvendor.customer.service.CustomerService;
 import com.streetvendor.security.JwtService;
+import com.streetvendor.security.lockout.AccountLockedException;
+import com.streetvendor.security.lockout.AccountLockoutService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -28,7 +32,8 @@ public class AuthServiceImpl implements AuthService {
     private final CustomerService customerService;
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokenService;
-    private final LockService lockService;
+    private final AccountLockoutService accountLockoutService;
+    private final AuditService auditService;
 
     @Value("${jwt.access-expiration}")
     private long accessExpirationMs;
@@ -39,13 +44,15 @@ public class AuthServiceImpl implements AuthService {
             CustomerService customerService,
             JwtService jwtService,
             RefreshTokenService refreshTokenService,
-            LockService lockService) {
+            AccountLockoutService accountLockoutService,
+            AuditService auditService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.customerService = customerService;
         this.jwtService = jwtService;
         this.refreshTokenService = refreshTokenService;
-        this.lockService = lockService;
+        this.accountLockoutService = accountLockoutService;
+        this.auditService = auditService;
     }
 
     @Override
@@ -91,10 +98,31 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public LoginResult login(LoginRequest request) {
-        User user = userRepository.findByEmail(request.email())
+        String email = request.email();
+
+        if (accountLockoutService.isLocked(email)) {
+            long remainingSeconds = accountLockoutService.getRemainingLockDurationSeconds(email);
+            long remainingMinutes = Math.max(1, (remainingSeconds + 59) / 60);
+            throw new AccountLockedException(remainingMinutes);
+        }
+
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UnauthorizedException("Invalid email or password."));
 
+        auditService.logEvent(AuditEventType.LOGIN_ATTEMPT, user.getId(), "Login attempt for " + email);
+
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+            accountLockoutService.recordFailedAttempt(email);
+            auditService.logEvent(AuditEventType.LOGIN_FAILED, user.getId(), "Login failed - invalid password for " + email);
+
+            if (accountLockoutService.isLocked(email)) {
+                long remainingSeconds = accountLockoutService.getRemainingLockDurationSeconds(email);
+                long remainingMinutes = Math.max(1, (remainingSeconds + 59) / 60);
+                auditService.logEvent(AuditEventType.ACCOUNT_LOCKED, user.getId(),
+                        "Account locked due to repeated failed login attempts for " + email);
+                throw new AccountLockedException(remainingMinutes);
+            }
+
             throw new UnauthorizedException("Invalid email or password.");
         }
 
@@ -102,9 +130,8 @@ public class AuthServiceImpl implements AuthService {
             throw new ForbiddenException("Account is not active.");
         }
 
-        if (lockService.isLocked(user.getEmail())) {
-            throw new ForbiddenException("Account is locked.");
-        }
+        accountLockoutService.clearLockout(email);
+        auditService.logEvent(AuditEventType.LOGIN_SUCCESS, user.getId(), "Login successful for " + email);
 
         String accessToken = jwtService.generateAccessToken(
                 user.getId(),

@@ -6,6 +6,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.streetvendor.security.CustomAccessDeniedHandler;
 import com.streetvendor.security.CustomAuthenticationEntryPoint;
 import com.streetvendor.security.JwtAuthenticationFilter;
+import com.streetvendor.security.ratelimit.RateLimitingFilter;
 import java.util.Arrays;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,11 +24,14 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
         private final JwtAuthenticationFilter jwtAuthenticationFilter;
+        private final RateLimitingFilter rateLimitingFilter;
         private final Environment environment;
 
         public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
+                        RateLimitingFilter rateLimitingFilter,
                         Environment environment) {
                 this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+                this.rateLimitingFilter = rateLimitingFilter;
                 this.environment = environment;
         }
 
@@ -38,7 +42,7 @@ public class SecurityConfig {
                                 .sessionManagement(session -> session
                                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                                 .authorizeHttpRequests(authBuilder -> authBuilder
-                                                .requestMatchers("/actuator/health").permitAll()
+                                                .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                                                 .requestMatchers("/api/auth/register").permitAll()
                                                 .requestMatchers("/api/auth/login").permitAll()
                                                 .requestMatchers("/api/auth/refresh").permitAll()
@@ -74,6 +78,7 @@ public class SecurityConfig {
                                                                 securityObjectMapper()))
                                                 .accessDeniedHandler(customAccessDeniedHandler(
                                                                 securityObjectMapper())))
+                                .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
                                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                                 .build();
         }

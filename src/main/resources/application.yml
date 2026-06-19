@@ -6,13 +6,28 @@ spring:
       password: ${REDIS_PASSWORD:}
       ping-on-startup: false
 
+account:
+  lock:
+    threshold: ${ACCOUNT_LOCK_THRESHOLD:5}
+    duration-minutes: ${ACCOUNT_LOCK_DURATION_MINUTES:15}
+
 management:
-  health:
-    redis:
-      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health
   endpoint:
     health:
       show-details: always
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: db,redis
+          show-details: never
+  health:
+    redis:
+      enabled: true
 
 discovery:
   cache:

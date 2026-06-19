@@ -25,4 +25,16 @@ public class AuditService {
         );
         auditLogRepository.save(auditLog);
     }
+
+    @Transactional
+    public void logEvent(AuditEventType eventType, UUID subjectId, String details) {
+        AuditLog auditLog = new AuditLog(
+                UUID.randomUUID(),
+                eventType,
+                subjectId,
+                null,
+                details
+        );
+        auditLogRepository.save(auditLog);
+    }
 }

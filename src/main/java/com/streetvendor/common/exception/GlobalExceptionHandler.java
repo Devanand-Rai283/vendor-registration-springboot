@@ -16,6 +16,8 @@ import java.util.Objects;
 import com.streetvendor.order.exception.InvalidOrderStatusTransitionException;
 import com.streetvendor.order.exception.OrderAlreadyFinalizedException;
 import com.streetvendor.order.exception.OrderCancellationNotAllowedException;
+import com.streetvendor.security.lockout.AccountLockedException;
+import com.streetvendor.security.ratelimit.RateLimitExceededException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -101,6 +103,20 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiErrorResponse> handleExternalService(ExternalServiceException ex, HttpServletRequest request) {
         ApiErrorResponse body = new ApiErrorResponse(HttpStatus.BAD_GATEWAY.value(), ex.getMessage(), request.getRequestURI());
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(body);
+    }
+
+    @ExceptionHandler(AccountLockedException.class)
+    public ResponseEntity<ApiErrorResponse> handleAccountLocked(AccountLockedException ex, HttpServletRequest request) {
+        ApiErrorResponse body = new ApiErrorResponse(HttpStatus.FORBIDDEN.value(), ex.getMessage(), request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
+    }
+
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<ApiErrorResponse> handleRateLimitExceeded(RateLimitExceededException ex, HttpServletRequest request) {
+        ApiErrorResponse body = new ApiErrorResponse(HttpStatus.TOO_MANY_REQUESTS.value(), ex.getMessage(), request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", String.valueOf(ex.getRetryAfterSeconds()))
+                .body(body);
     }
 
     @ExceptionHandler(Exception.class)

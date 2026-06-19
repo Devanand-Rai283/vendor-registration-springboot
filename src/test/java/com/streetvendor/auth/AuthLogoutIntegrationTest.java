@@ -9,7 +9,13 @@ import com.streetvendor.auth.entity.User;
 import com.streetvendor.auth.repository.RefreshTokenRepository;
 import com.streetvendor.auth.repository.UserRepository;
 import com.streetvendor.security.JwtService;
+import com.streetvendor.security.ratelimit.RateLimitService;
 import com.streetvendor.support.AbstractSecurityTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+
+import static org.mockito.Mockito.mock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +37,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @ActiveProfiles("auth-test")
 @Transactional
+@Import({AuthTestRedisConfig.class, AuthLogoutIntegrationTest.LogoutTestConfig.class})
 class AuthLogoutIntegrationTest extends AbstractSecurityTest {
 
     @Autowired
@@ -155,5 +162,14 @@ class AuthLogoutIntegrationTest extends AbstractSecurityTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Logout successful"));
+    }
+
+    @TestConfiguration
+    static class LogoutTestConfig {
+
+        @Bean
+        public RateLimitService rateLimitService() {
+            return mock(RateLimitService.class);
+        }
     }
 }

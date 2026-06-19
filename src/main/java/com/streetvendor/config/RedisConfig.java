@@ -13,6 +13,9 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
+import java.time.Duration;
+import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
+
 @Configuration
 public class RedisConfig {
 
@@ -28,6 +31,9 @@ public class RedisConfig {
     @Value("${spring.data.redis.ping-on-startup:true}")
     private boolean pingOnStartup;
 
+    @Value("${spring.data.redis.timeout:2000}")
+    private long redisTimeout;
+
     @Bean
     public RedisConnectionFactory redisConnectionFactory() {
         RedisStandaloneConfiguration config = new RedisStandaloneConfiguration(redisHost, redisPort);
@@ -35,7 +41,11 @@ public class RedisConfig {
             config.setPassword(redisPassword);
         }
 
-        LettuceConnectionFactory factory = new LettuceConnectionFactory(config);
+        LettuceClientConfiguration clientConfig = LettuceClientConfiguration.builder()
+                .commandTimeout(Duration.ofMillis(redisTimeout))
+                .build();
+
+        LettuceConnectionFactory factory = new LettuceConnectionFactory(config, clientConfig);
         factory.afterPropertiesSet();
 
         // Validate connection on startup if enabled — throws if Redis unreachable
