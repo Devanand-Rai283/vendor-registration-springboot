@@ -34,6 +34,10 @@ discovery:
     vendor-search-ttl: 600
     vendor-menu-ttl: 900
 
+analytics:
+  cron-expression: ${ANALYTICS_CRON_EXPRESSION:0 0 1 * * *}
+  timezone: ${ANALYTICS_TIMEZONE:UTC}
+
 razorpay:
   key-id: ${RAZORPAY_KEY_ID}
   key-secret: ${RAZORPAY_KEY_SECRET}

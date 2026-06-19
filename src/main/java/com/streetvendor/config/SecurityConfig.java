@@ -51,6 +51,7 @@ public class SecurityConfig {
                                                 .requestMatchers(HttpMethod.GET, "/api/search").permitAll()
                                                 .requestMatchers(HttpMethod.POST, "/api/vendors").hasRole("VENDOR")
                                                 .requestMatchers(HttpMethod.GET, "/api/vendors/me").hasRole("VENDOR")
+                                                .requestMatchers(HttpMethod.GET, "/api/vendors/*/analytics").hasAnyRole("VENDOR", "ADMIN")
                                                 .requestMatchers(HttpMethod.POST, "/api/uploads/**").hasRole("VENDOR")
                                                 .requestMatchers(HttpMethod.POST, "/api/orders").hasRole("CUSTOMER")
                                                 .requestMatchers(HttpMethod.POST, "/api/ratings").hasRole("CUSTOMER")

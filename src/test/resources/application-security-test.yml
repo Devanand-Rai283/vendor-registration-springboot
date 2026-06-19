@@ -49,3 +49,7 @@ razorpay:
   key-id: test-razorpay-key-id
   key-secret: test-razorpay-key-secret
   webhook-secret: test-webhook-secret
+
+analytics:
+  cron-expression: 0 0 1 * * *
+  timezone: UTC
