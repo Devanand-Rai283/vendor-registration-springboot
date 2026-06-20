@@ -1,6 +1,7 @@
 package com.streetvendor.discovery.controller;
 
 import com.streetvendor.discovery.dto.NearbyVendorResponse;
+import com.streetvendor.discovery.dto.VendorReviewResponse;
 import com.streetvendor.discovery.service.DiscoveryService;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
@@ -9,9 +10,15 @@ import jakarta.validation.constraints.PositiveOrZero;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
+import com.streetvendor.common.response.ApiResponse;
+import com.streetvendor.discovery.dto.VendorDetailDto;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import java.util.UUID;
 
 /**
  * REST controller for nearby vendor discovery.
@@ -110,5 +117,38 @@ public class DiscoveryController {
             int size) {
         NearbyVendorResponse response = discoveryService.findNearbyVendors(lat, lng, radius, page, size);
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Retrieves public details of a single APPROVED vendor.
+     *
+     * @param id the unique identifier of the vendor
+     * @return the vendor details, with HTTP 200
+     */
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<VendorDetailDto>> getVendor(
+            @PathVariable UUID id) {
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Vendor details retrieved successfully",
+                        discoveryService.getVendorDetails(id)
+                )
+        );
+    }
+
+    /**
+     * Retrieves a paginated list of reviews for a single APPROVED vendor.
+     *
+     * @param vendorId the unique identifier of the vendor
+     * @param page     the page number, zero-indexed (must be zero or positive, default 0)
+     * @param size     the number of results per page (must be positive, default 10)
+     * @return paginated vendor reviews, with HTTP 200
+     */
+    @GetMapping("/{vendorId}/ratings")
+    public ResponseEntity<Page<VendorReviewResponse>> getVendorReviews(
+            @PathVariable UUID vendorId,
+            @RequestParam(defaultValue = "0") @PositiveOrZero int page,
+            @RequestParam(defaultValue = "10") @Positive int size) {
+        return ResponseEntity.ok(discoveryService.getVendorReviews(vendorId, PageRequest.of(page, size)));
     }
 }

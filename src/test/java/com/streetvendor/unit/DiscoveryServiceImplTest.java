@@ -25,12 +25,14 @@ import org.springframework.data.domain.Pageable;
 import java.math.BigDecimal;
 import com.streetvendor.common.exception.ResourceNotFoundException;
 import com.streetvendor.discovery.dto.MenuCategoryResponseDto;
-import com.streetvendor.discovery.dto.MenuItemResponseDto;
 import com.streetvendor.discovery.dto.VendorMenuResponseDto;
+import com.streetvendor.discovery.dto.MenuItemResponseDto;
+import com.streetvendor.discovery.dto.VendorReviewResponse;
 import com.streetvendor.menu.entity.MenuCategory;
 import com.streetvendor.menu.entity.MenuItem;
 import com.streetvendor.menu.repository.MenuCategoryRepository;
 import com.streetvendor.menu.repository.MenuItemRepository;
+import com.streetvendor.rating.repository.RatingRepository;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -61,6 +63,9 @@ class DiscoveryServiceImplTest {
 
     @Mock
     private FoodSearchRepository foodSearchRepository;
+
+    @Mock
+    private RatingRepository ratingRepository;
 
     @Mock
     private DiscoveryCacheService discoveryCacheService;
@@ -564,5 +569,122 @@ class DiscoveryServiceImplTest {
                         baseLng + (i + 1) * 0.001,
                         VendorStatus.APPROVED))
                 .toList();
+    }
+
+    @Test
+    void shouldReturnVendorDetailsWhenVendorApproved() {
+        UUID vendorId = UUID.randomUUID();
+        Vendor vendor = createVendor(vendorId, "Mama Sara's Kitchen", 1.2921, 36.8219, VendorStatus.APPROVED);
+        vendor.setDescription("Delicious Swahili grills");
+
+        when(vendorRepository.findById(vendorId)).thenReturn(Optional.of(vendor));
+
+        com.streetvendor.discovery.dto.VendorDetailDto details = discoveryService.getVendorDetails(vendorId);
+
+        assertNotNull(details);
+        assertEquals(vendorId, details.id());
+        assertEquals("Mama Sara's Kitchen", details.businessName());
+        assertEquals("Delicious Swahili grills", details.description());
+        assertEquals("Test Food", details.foodType());
+        assertEquals(BigDecimal.valueOf(4.0), details.averageRating());
+        assertEquals("123 Test St", details.address());
+        assertEquals(BigDecimal.valueOf(1.2921), details.latitude());
+        assertEquals(BigDecimal.valueOf(36.8219), details.longitude());
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenVendorNotFoundForDetails() {
+        UUID vendorId = UUID.randomUUID();
+        when(vendorRepository.findById(vendorId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> discoveryService.getVendorDetails(vendorId))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenVendorPendingForDetails() {
+        UUID vendorId = UUID.randomUUID();
+        Vendor vendor = createVendor(vendorId, "Pending Vendor", 0.0, 0.0, VendorStatus.PENDING_REVIEW);
+        when(vendorRepository.findById(vendorId)).thenReturn(Optional.of(vendor));
+
+        assertThatThrownBy(() -> discoveryService.getVendorDetails(vendorId))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenVendorRejectedForDetails() {
+        UUID vendorId = UUID.randomUUID();
+        Vendor vendor = createVendor(vendorId, "Rejected Vendor", 0.0, 0.0, VendorStatus.REJECTED);
+        when(vendorRepository.findById(vendorId)).thenReturn(Optional.of(vendor));
+
+        assertThatThrownBy(() -> discoveryService.getVendorDetails(vendorId))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenVendorSuspendedForDetails() {
+        UUID vendorId = UUID.randomUUID();
+        com.streetvendor.auth.entity.User user = new com.streetvendor.auth.entity.User(
+                UUID.randomUUID(), "vendor@test.com", "password",
+                com.streetvendor.auth.entity.Role.VENDOR,
+                com.streetvendor.auth.entity.AccountStatus.SUSPENDED
+        );
+        Vendor vendor = new Vendor(vendorId, user, "Suspended Vendor");
+        vendor.setLatitude(BigDecimal.valueOf(0.0));
+        vendor.setLongitude(BigDecimal.valueOf(0.0));
+        vendor.setStatus(VendorStatus.APPROVED);
+
+        when(vendorRepository.findById(vendorId)).thenReturn(Optional.of(vendor));
+
+        assertThatThrownBy(() -> discoveryService.getVendorDetails(vendorId))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenVendorNotFoundForReviews() {
+        UUID vendorId = UUID.randomUUID();
+        when(vendorRepository.findById(vendorId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> discoveryService.getVendorReviews(vendorId, PageRequest.of(0, 10)))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenVendorPendingForReviews() {
+        UUID vendorId = UUID.randomUUID();
+        Vendor vendor = createVendor(vendorId, "Pending Vendor", 0.0, 0.0, VendorStatus.PENDING_REVIEW);
+        when(vendorRepository.findById(vendorId)).thenReturn(Optional.of(vendor));
+
+        assertThatThrownBy(() -> discoveryService.getVendorReviews(vendorId, PageRequest.of(0, 10)))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenVendorRejectedForReviews() {
+        UUID vendorId = UUID.randomUUID();
+        Vendor vendor = createVendor(vendorId, "Rejected Vendor", 0.0, 0.0, VendorStatus.REJECTED);
+        when(vendorRepository.findById(vendorId)).thenReturn(Optional.of(vendor));
+
+        assertThatThrownBy(() -> discoveryService.getVendorReviews(vendorId, PageRequest.of(0, 10)))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenVendorSuspendedForReviews() {
+        UUID vendorId = UUID.randomUUID();
+        com.streetvendor.auth.entity.User user = new com.streetvendor.auth.entity.User(
+                UUID.randomUUID(), "vendor@test.com", "password",
+                com.streetvendor.auth.entity.Role.VENDOR,
+                com.streetvendor.auth.entity.AccountStatus.SUSPENDED
+        );
+        Vendor vendor = new Vendor(vendorId, user, "Suspended Vendor");
+        vendor.setLatitude(BigDecimal.valueOf(0.0));
+        vendor.setLongitude(BigDecimal.valueOf(0.0));
+        vendor.setStatus(VendorStatus.APPROVED);
+
+        when(vendorRepository.findById(vendorId)).thenReturn(Optional.of(vendor));
+
+        assertThatThrownBy(() -> discoveryService.getVendorReviews(vendorId, PageRequest.of(0, 10)))
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 }

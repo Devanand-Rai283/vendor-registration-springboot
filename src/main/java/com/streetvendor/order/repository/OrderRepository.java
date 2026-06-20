@@ -5,8 +5,12 @@ import com.streetvendor.order.enums.OrderStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -36,4 +40,21 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
      * @return count of orders created within the interval
      */
     long countByCreatedAtBetween(Instant start, Instant end);
+
+    Page<Order> findByVendorId(UUID vendorId, Pageable pageable);
+
+    Page<Order> findByVendorIdAndStatus(UUID vendorId, OrderStatus status, Pageable pageable);
+
+    Optional<Order> findByIdAndVendorId(UUID id, UUID vendorId);
+
+    long countByVendorId(UUID vendorId);
+
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.vendor.id = :vendorId AND o.status IN :statuses")
+    long countByVendorIdAndStatusIn(@Param("vendorId") UUID vendorId, @Param("statuses") Collection<OrderStatus> statuses);
+
+    @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE o.vendor.id = :vendorId AND o.status <> com.streetvendor.order.enums.OrderStatus.CANCELLED")
+    BigDecimal sumRevenueByVendorId(@Param("vendorId") UUID vendorId);
+
+    @Query("SELECT COALESCE(AVG(o.totalAmount), 0) FROM Order o WHERE o.vendor.id = :vendorId AND o.status <> com.streetvendor.order.enums.OrderStatus.CANCELLED")
+    BigDecimal averageOrderValueByVendorId(@Param("vendorId") UUID vendorId);
 }

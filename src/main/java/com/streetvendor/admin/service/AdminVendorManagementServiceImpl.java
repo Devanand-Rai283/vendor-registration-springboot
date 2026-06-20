@@ -1,5 +1,7 @@
 package com.streetvendor.admin.service;
 
+import com.streetvendor.admin.dto.AdminVendorDetailResponseDto;
+import com.streetvendor.admin.dto.AdminVendorDocumentResponseDto;
 import com.streetvendor.admin.dto.AdminVendorSummaryDto;
 import com.streetvendor.auth.entity.AccountStatus;
 import com.streetvendor.auth.entity.RefreshToken;
@@ -11,6 +13,7 @@ import com.streetvendor.common.audit.AuditService;
 import com.streetvendor.common.exception.ResourceNotFoundException;
 import com.streetvendor.vendor.entity.Vendor;
 import com.streetvendor.vendor.enums.VendorStatus;
+import com.streetvendor.vendor.repository.VendorDocumentRepository;
 import com.streetvendor.vendor.repository.VendorRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -24,6 +27,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class AdminVendorManagementServiceImpl implements AdminVendorManagementService {
@@ -33,18 +37,21 @@ public class AdminVendorManagementServiceImpl implements AdminVendorManagementSe
     private final RefreshTokenRepository refreshTokenRepository;
     private final RedisTemplate<String, Object> redisTemplate;
     private final AuditService auditService;
+    private final VendorDocumentRepository vendorDocumentRepository;
 
     public AdminVendorManagementServiceImpl(
             VendorRepository vendorRepository,
             UserRepository userRepository,
             RefreshTokenRepository refreshTokenRepository,
             RedisTemplate<String, Object> redisTemplate,
-            AuditService auditService) {
+            AuditService auditService,
+            VendorDocumentRepository vendorDocumentRepository) {
         this.vendorRepository = vendorRepository;
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.redisTemplate = redisTemplate;
         this.auditService = auditService;
+        this.vendorDocumentRepository = vendorDocumentRepository;
     }
 
     @Override
@@ -138,5 +145,49 @@ public class AdminVendorManagementServiceImpl implements AdminVendorManagementSe
 
         // 3. Write ACCOUNT_REACTIVATED audit event
         auditService.logEvent(AuditEventType.ACCOUNT_REACTIVATED, vendor.getId(), adminUserId, "Vendor account reactivated by admin.");
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public AdminVendorDetailResponseDto getVendorDetails(UUID vendorId) {
+        Vendor vendor = vendorRepository.findById(vendorId)
+                .orElseThrow(() -> new ResourceNotFoundException("Vendor not found with id: " + vendorId));
+
+        User user = vendor.getUser();
+        if (user == null) {
+            throw new ResourceNotFoundException("No user associated with vendor id: " + vendorId);
+        }
+
+        List<AdminVendorDocumentResponseDto> documents = vendorDocumentRepository.findByVendorId(vendorId).stream()
+                .map(doc -> new AdminVendorDocumentResponseDto(
+                        doc.getId(),
+                        doc.getDocumentType(),
+                        doc.getVerificationStatus(),
+                        doc.getFileUrl(),
+                        doc.getUploadedAt(),
+                        doc.getRejectionReason()
+                ))
+                .collect(Collectors.toList());
+
+        return new AdminVendorDetailResponseDto(
+                vendor.getId(),
+                vendor.getBusinessName(),
+                vendor.getOwnerName(),
+                user.getEmail(),
+                vendor.getPhone(),
+                vendor.getDescription(),
+                vendor.getFoodType(),
+                vendor.getStatus(),
+                user.getAccountStatus(),
+                vendor.getAddress(),
+                vendor.getLatitude(),
+                vendor.getLongitude(),
+                vendor.getAverageRating(),
+                vendor.getTotalReviews(),
+                vendor.getCreatedAt(),
+                vendor.getUpdatedAt(),
+                vendor.getRejectionReason(),
+                documents
+        );
     }
 }

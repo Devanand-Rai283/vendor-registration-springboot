@@ -4,6 +4,8 @@ import com.streetvendor.common.response.ApiResponse;
 import com.streetvendor.discovery.dto.VendorMenuResponseDto;
 import com.streetvendor.discovery.service.DiscoveryService;
 import com.streetvendor.vendor.dto.CreateVendorRequest;
+import com.streetvendor.vendor.dto.UpdateVendorProfileRequest;
+import com.streetvendor.vendor.dto.VendorProfileResponseDto;
 import com.streetvendor.vendor.dto.VendorResponse;
 import com.streetvendor.vendor.dto.VendorStatusResponse;
 import com.streetvendor.vendor.service.VendorService;
@@ -13,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -46,6 +49,19 @@ public class VendorController {
     public ResponseEntity<ApiResponse<VendorStatusResponse>> getMyVendorStatus() {
         VendorStatusResponse response = vendorService.getMyVendorStatus();
         return ResponseEntity.ok(ApiResponse.success("Vendor status retrieved", response));
+    }
+
+    @GetMapping("/me/profile")
+    public ResponseEntity<ApiResponse<VendorProfileResponseDto>> getMyVendorProfile() {
+        VendorProfileResponseDto response = vendorService.getMyVendorProfile();
+        return ResponseEntity.ok(ApiResponse.success("Vendor profile retrieved", response));
+    }
+
+    @PutMapping("/me/profile")
+    public ResponseEntity<ApiResponse<VendorProfileResponseDto>> updateMyVendorProfile(
+            @Valid @RequestBody UpdateVendorProfileRequest request) {
+        VendorProfileResponseDto response = vendorService.updateMyVendorProfile(request);
+        return ResponseEntity.ok(ApiResponse.success("Vendor profile updated successfully", response));
     }
 
     @GetMapping("/{vendorId}/menu")

@@ -2,9 +2,12 @@ package com.streetvendor.discovery.service;
 
 import com.streetvendor.discovery.dto.FoodSearchResponseDto;
 import com.streetvendor.discovery.dto.NearbyVendorResponse;
+import com.streetvendor.discovery.dto.VendorDetailDto;
 import com.streetvendor.discovery.dto.VendorMenuResponseDto;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import java.util.UUID;
+import com.streetvendor.discovery.dto.VendorReviewResponse;
 
 /**
  * Service interface for vendor discovery use cases.
@@ -31,6 +34,23 @@ public interface DiscoveryService {
     NearbyVendorResponse findNearbyVendors(double latitude, double longitude, double radiusKm, int page, int size);
 
     VendorMenuResponseDto getVendorMenu(UUID vendorId);
+
+    /**
+     * Retrieves public details of a single approved vendor by ID.
+     *
+     * @param vendorId the unique identifier of the vendor
+     * @return public details of the vendor
+     */
+    VendorDetailDto getVendorDetails(UUID vendorId);
+
+    /**
+     * Retrieves a paginated list of reviews for a single approved vendor.
+     *
+     * @param vendorId the unique identifier of the vendor
+     * @param pageable pagination parameters
+     * @return paginated vendor reviews
+     */
+    Page<VendorReviewResponse> getVendorReviews(UUID vendorId, Pageable pageable);
 
     /**
      * Searches for food items by keyword across all approved vendors,

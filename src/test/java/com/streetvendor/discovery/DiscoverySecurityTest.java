@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -305,5 +306,76 @@ class DiscoverySecurityTest extends AbstractSecurityTest {
                         .param("keyword", "taco")
                         .param("size", "101"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void shouldAllowAnonymousAccessWhenGettingVendorDetails() throws Exception {
+        UUID vendorId = UUID.randomUUID();
+        com.streetvendor.discovery.dto.VendorDetailDto dto = new com.streetvendor.discovery.dto.VendorDetailDto(
+                vendorId, "Security Vendor", "Desc", "Type", BigDecimal.valueOf(4.0),
+                "Addr", BigDecimal.valueOf(1.0), BigDecimal.valueOf(1.0)
+        );
+        when(discoveryService.getVendorDetails(vendorId)).thenReturn(dto);
+
+        mockMvc.perform(get("/api/vendors/{id}", vendorId))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void shouldAllowCustomerAccessWhenGettingVendorDetails() throws Exception {
+        UUID vendorId = UUID.randomUUID();
+        com.streetvendor.discovery.dto.VendorDetailDto dto = new com.streetvendor.discovery.dto.VendorDetailDto(
+                vendorId, "Security Vendor", "Desc", "Type", BigDecimal.valueOf(4.0),
+                "Addr", BigDecimal.valueOf(1.0), BigDecimal.valueOf(1.0)
+        );
+        when(discoveryService.getVendorDetails(vendorId)).thenReturn(dto);
+
+        mockMvc.perform(get("/api/vendors/{id}", vendorId)
+                        .header("Authorization", "Bearer " + customerToken))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void shouldAllowVendorAccessWhenGettingVendorDetails() throws Exception {
+        UUID vendorId = UUID.randomUUID();
+        com.streetvendor.discovery.dto.VendorDetailDto dto = new com.streetvendor.discovery.dto.VendorDetailDto(
+                vendorId, "Security Vendor", "Desc", "Type", BigDecimal.valueOf(4.0),
+                "Addr", BigDecimal.valueOf(1.0), BigDecimal.valueOf(1.0)
+        );
+        when(discoveryService.getVendorDetails(vendorId)).thenReturn(dto);
+
+        mockMvc.perform(get("/api/vendors/{id}", vendorId)
+                        .header("Authorization", "Bearer " + vendorToken))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void shouldAllowAdminAccessWhenGettingVendorDetails() throws Exception {
+        UUID vendorId = UUID.randomUUID();
+        com.streetvendor.discovery.dto.VendorDetailDto dto = new com.streetvendor.discovery.dto.VendorDetailDto(
+                vendorId, "Security Vendor", "Desc", "Type", BigDecimal.valueOf(4.0),
+                "Addr", BigDecimal.valueOf(1.0), BigDecimal.valueOf(1.0)
+        );
+        when(discoveryService.getVendorDetails(vendorId)).thenReturn(dto);
+
+        mockMvc.perform(get("/api/vendors/{id}", vendorId)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void shouldDenyAnonymousAccessToVendorMe() throws Exception {
+        mockMvc.perform(get("/api/vendors/me"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void shouldAllowAnonymousAccessWhenGettingVendorRatings() throws Exception {
+        UUID vendorId = UUID.randomUUID();
+        when(discoveryService.getVendorReviews(eq(vendorId), org.mockito.ArgumentMatchers.any(PageRequest.class)))
+                .thenReturn(new PageImpl<>(List.of()));
+
+        mockMvc.perform(get("/api/vendors/{vendorId}/ratings", vendorId))
+                .andExpect(status().isOk());
     }
 }

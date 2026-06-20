@@ -2,6 +2,7 @@ package com.streetvendor.discovery;
 
 import com.streetvendor.discovery.dto.FoodSearchResponseDto;
 import com.streetvendor.discovery.dto.NearbyVendorResponse;
+import com.streetvendor.discovery.dto.VendorReviewResponse;
 import com.streetvendor.discovery.dto.VendorSummaryResponse;
 import com.streetvendor.discovery.service.DiscoveryService;
 import com.streetvendor.support.AbstractIntegrationTest;
@@ -15,7 +16,9 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
+import java.time.Instant;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
@@ -355,5 +358,67 @@ class DiscoveryControllerTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.vendors.length()").value(2))
                 .andExpect(jsonPath("$.totalElements").value(4))
                 .andExpect(jsonPath("$.totalPages").value(2));
+    }
+
+    @Test
+    void shouldGetVendorDetailsSuccessfully() throws Exception {
+        UUID vendorId = UUID.randomUUID();
+        com.streetvendor.discovery.dto.VendorDetailDto dto = new com.streetvendor.discovery.dto.VendorDetailDto(
+                vendorId,
+                "Maria's Tacos",
+                "Tasty Mexican tacos",
+                "Mexican",
+                BigDecimal.valueOf(4.5),
+                "123 Main St",
+                BigDecimal.valueOf(12.9716),
+                BigDecimal.valueOf(77.5946)
+        );
+
+        when(discoveryService.getVendorDetails(vendorId)).thenReturn(dto);
+
+        mockMvc.perform(get("/api/vendors/{id}", vendorId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.businessName").value("Maria's Tacos"))
+                .andExpect(jsonPath("$.data.description").value("Tasty Mexican tacos"))
+                .andExpect(jsonPath("$.data.latitude").value(12.9716))
+                .andExpect(jsonPath("$.data.longitude").value(77.5946));
+    }
+
+    @Test
+    void shouldReturn404WhenVendorDetailsNotFound() throws Exception {
+        UUID vendorId = UUID.randomUUID();
+        when(discoveryService.getVendorDetails(vendorId))
+                .thenThrow(new com.streetvendor.common.exception.ResourceNotFoundException("Vendor not found"));
+
+        mockMvc.perform(get("/api/vendors/{id}", vendorId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.path").value("/api/vendors/" + vendorId));
+    }
+
+    @Test
+    void shouldGetVendorReviewsSuccessfully() throws Exception {
+        UUID vendorId = UUID.randomUUID();
+        VendorReviewResponse review = new VendorReviewResponse(
+                UUID.randomUUID(), 5, "Excellent!", "John D.", Instant.now()
+        );
+        Page<VendorReviewResponse> page = new PageImpl<>(
+                List.of(review), PageRequest.of(0, 10), 1
+        );
+
+        when(discoveryService.getVendorReviews(eq(vendorId), any(PageRequest.class))).thenReturn(page);
+
+        mockMvc.perform(get("/api/vendors/{vendorId}/ratings", vendorId)
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content[0].stars").value(5))
+                .andExpect(jsonPath("$.content[0].reviewText").value("Excellent!"))
+                .andExpect(jsonPath("$.content[0].customerDisplayName").value("John D."))
+                .andExpect(jsonPath("$.size").value(10))
+                .andExpect(jsonPath("$.number").value(0))
+                .andExpect(jsonPath("$.totalElements").value(1));
     }
 }

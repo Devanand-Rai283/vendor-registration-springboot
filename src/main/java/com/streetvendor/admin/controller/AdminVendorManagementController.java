@@ -1,5 +1,6 @@
 package com.streetvendor.admin.controller;
 
+import com.streetvendor.admin.dto.AdminVendorDetailResponseDto;
 import com.streetvendor.admin.dto.AdminVendorSummaryDto;
 import com.streetvendor.admin.service.AdminVendorManagementService;
 import com.streetvendor.auth.entity.User;
@@ -139,5 +140,13 @@ public class AdminVendorManagementController {
         }
         adminVendorManagementService.reactivateVendor(id, adminUser.getId());
         return ResponseEntity.ok(ApiResponse.success("Vendor account reactivated successfully."));
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Get detailed information about a vendor and its documents")
+    public ResponseEntity<ApiResponse<AdminVendorDetailResponseDto>> getVendorDetails(
+            @PathVariable UUID id) {
+        AdminVendorDetailResponseDto details = adminVendorManagementService.getVendorDetails(id);
+        return ResponseEntity.ok(ApiResponse.success("Vendor details retrieved successfully.", details));
     }
 }

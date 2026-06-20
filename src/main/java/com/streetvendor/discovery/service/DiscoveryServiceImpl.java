@@ -5,13 +5,16 @@ import com.streetvendor.discovery.cache.DiscoveryCacheService;
 import com.streetvendor.discovery.config.DiscoveryCacheProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.streetvendor.auth.entity.AccountStatus;
 import com.streetvendor.common.exception.ResourceNotFoundException;
 import com.streetvendor.discovery.dto.BoundingBox;
 import com.streetvendor.discovery.dto.FoodSearchResponseDto;
 import com.streetvendor.discovery.dto.MenuCategoryResponseDto;
 import com.streetvendor.discovery.dto.MenuItemResponseDto;
 import com.streetvendor.discovery.dto.NearbyVendorResponse;
+import com.streetvendor.discovery.dto.VendorDetailDto;
 import com.streetvendor.discovery.dto.VendorMenuResponseDto;
+import com.streetvendor.discovery.dto.VendorReviewResponse;
 import com.streetvendor.discovery.dto.VendorSummaryResponse;
 import com.streetvendor.discovery.repository.FoodSearchRepository;
 import com.streetvendor.discovery.util.BoundingBoxCalculator;
@@ -21,6 +24,7 @@ import com.streetvendor.menu.entity.MenuCategory;
 import com.streetvendor.menu.entity.MenuItem;
 import com.streetvendor.menu.repository.MenuCategoryRepository;
 import com.streetvendor.menu.repository.MenuItemRepository;
+import com.streetvendor.rating.repository.RatingRepository;
 import com.streetvendor.vendor.enums.VendorStatus;
 import com.streetvendor.vendor.repository.VendorRepository;
 import org.springframework.data.domain.Page;
@@ -71,6 +75,7 @@ public class DiscoveryServiceImpl implements DiscoveryService {
     private final FoodSearchRepository foodSearchRepository;
     private final DiscoveryCacheService discoveryCacheService;
     private final DiscoveryCacheProperties cacheProperties;
+    private final RatingRepository ratingRepository;
 
     public DiscoveryServiceImpl(
             VendorRepository vendorRepository,
@@ -78,13 +83,15 @@ public class DiscoveryServiceImpl implements DiscoveryService {
             MenuItemRepository menuItemRepository,
             FoodSearchRepository foodSearchRepository,
             DiscoveryCacheService discoveryCacheService,
-            DiscoveryCacheProperties cacheProperties) {
+            DiscoveryCacheProperties cacheProperties,
+            RatingRepository ratingRepository) {
         this.vendorRepository = vendorRepository;
         this.menuCategoryRepository = menuCategoryRepository;
         this.menuItemRepository = menuItemRepository;
         this.foodSearchRepository = foodSearchRepository;
         this.discoveryCacheService = discoveryCacheService;
         this.cacheProperties = cacheProperties;
+        this.ratingRepository = ratingRepository;
     }
 
     @Override
@@ -210,6 +217,10 @@ public class DiscoveryServiceImpl implements DiscoveryService {
             // security-by-concealment.
             throw new ResourceNotFoundException("Vendor not found.");
         }
+        if (vendor.getUser() != null && vendor.getUser().getAccountStatus() != AccountStatus.ACTIVE) {
+            // Treat SUSPENDED and DELETED accounts as not found (404) for security-by-concealment.
+            throw new ResourceNotFoundException("Vendor not found.");
+        }
     }
 
     /**
@@ -266,6 +277,38 @@ public class DiscoveryServiceImpl implements DiscoveryService {
                 distanceKm);
     }
 
+    @Override
+    public VendorDetailDto getVendorDetails(UUID vendorId) {
+        Vendor vendor = getVendorOrThrow(vendorId);
+        validateVendorApproved(vendor);
+        return new VendorDetailDto(
+                vendor.getId(),
+                vendor.getBusinessName(),
+                vendor.getDescription(),
+                vendor.getFoodType(),
+                vendor.getAverageRating(),
+                vendor.getAddress(),
+                vendor.getLatitude(),
+                vendor.getLongitude()
+        );
+    }
+
+    @Override
+    public Page<VendorReviewResponse> getVendorReviews(UUID vendorId, Pageable pageable) {
+        Vendor vendor = getVendorOrThrow(vendorId);
+        validateVendorApproved(vendor);
+
+        return ratingRepository.findByVendorIdOrderByCreatedAtDesc(vendorId, pageable)
+                .map(rating -> new VendorReviewResponse(
+                        rating.getId(),
+                        rating.getStars(),
+                        rating.getReviewText(),
+                        rating.getCustomer().getFullName(),
+                        rating.getCreatedAt()
+                ));
+    }
+
+    @Override
     public VendorMenuResponseDto getVendorMenu(UUID vendorId) {
         String cacheKey = CacheKeyGenerator.vendorMenuKey(vendorId);
 

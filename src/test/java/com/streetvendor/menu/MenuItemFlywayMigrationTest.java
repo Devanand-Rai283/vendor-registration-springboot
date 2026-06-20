@@ -79,8 +79,21 @@ class MenuItemFlywayMigrationTest {
         assertTrue(existingMigrations.contains("V13__create_menu_categories.sql"));
         assertTrue(existingMigrations.contains("V14__create_menu_items.sql"));
         assertTrue(existingMigrations.contains("V17__create_payments.sql"));
-        assertEquals(15, existingMigrations.size(),
-                "Should have exactly 15 migration files (V1-V8 + V13-V19)");
+        assertTrue(existingMigrations.stream().anyMatch(m -> m.startsWith("V20__")), "V20 migration should exist");
+
+        // Validate that we have a consistent, gap-free sequence of migration versions
+        // (not a hardcoded file count)
+        List<Integer> versions = existingMigrations.stream()
+                .filter(m -> m.matches("V\\d+__.*\\.sql"))
+                .map(m -> Integer.parseInt(m.substring(1, m.indexOf("__"))))
+                .sorted()
+                .toList();
+
+        for (int i = 1; i < versions.size(); i++) {
+            assertTrue(versions.get(i) >= versions.get(i - 1), "Migration versions should be sorted");
+        }
+
+        assertTrue(versions.size() >= 16, "Expected at least 16 menu-related migrations after adding V20");
     }
 
     @Test

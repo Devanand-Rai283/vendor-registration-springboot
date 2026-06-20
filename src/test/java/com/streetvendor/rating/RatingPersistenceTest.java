@@ -13,6 +13,7 @@ import com.streetvendor.rating.repository.RatingRepository;
 import com.streetvendor.vendor.entity.Vendor;
 import com.streetvendor.vendor.repository.VendorRepository;
 import jakarta.validation.ConstraintViolationException;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,7 +23,12 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.test.util.ReflectionTestUtils;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -46,6 +52,9 @@ class RatingPersistenceTest {
 
     @Autowired
     private OrderRepository orderRepository;
+
+    @Autowired
+    private EntityManager entityManager;
 
     private Customer testCustomer;
     private Vendor testVendor;
@@ -118,5 +127,50 @@ class RatingPersistenceTest {
             ratingRepository.save(rating);
             ratingRepository.flush();
         });
+    }
+
+    @Test
+    void shouldRetrieveRatingsInDescendingOrderOfCreation() throws InterruptedException {
+        Rating rating1 = new Rating(UUID.randomUUID(), testOrder, testCustomer, testVendor, 3, "Oldest");
+        ratingRepository.save(rating1);
+
+        Order order2 = orderRepository.save(
+                new Order(UUID.randomUUID(), testCustomer, testVendor, new BigDecimal("100.00"), UUID.randomUUID().toString()));
+        Rating rating2 = new Rating(UUID.randomUUID(), order2, testCustomer, testVendor, 4, "Older");
+        ratingRepository.save(rating2);
+
+        Order order3 = orderRepository.save(
+                new Order(UUID.randomUUID(), testCustomer, testVendor, new BigDecimal("100.00"), UUID.randomUUID().toString()));
+        Rating rating3 = new Rating(UUID.randomUUID(), order3, testCustomer, testVendor, 5, "Newest");
+        ratingRepository.save(rating3);
+
+        ratingRepository.flush();
+
+        // Update the created_at field directly in the DB using native queries to bypass JPA Auditing overrides
+        entityManager.createNativeQuery("UPDATE ratings SET created_at = :createdAt WHERE id = :id")
+                .setParameter("createdAt", Instant.now().minusSeconds(100))
+                .setParameter("id", rating1.getId())
+                .executeUpdate();
+
+        entityManager.createNativeQuery("UPDATE ratings SET created_at = :createdAt WHERE id = :id")
+                .setParameter("createdAt", Instant.now().minusSeconds(50))
+                .setParameter("id", rating2.getId())
+                .executeUpdate();
+
+        entityManager.createNativeQuery("UPDATE ratings SET created_at = :createdAt WHERE id = :id")
+                .setParameter("createdAt", Instant.now())
+                .setParameter("id", rating3.getId())
+                .executeUpdate();
+
+        // Clear the L1 cache so Hibernate loads the updated values from the database
+        entityManager.clear();
+
+        Page<Rating> page = ratingRepository.findByVendorIdOrderByCreatedAtDesc(testVendor.getId(), PageRequest.of(0, 10));
+        List<Rating> ratings = page.getContent();
+
+        assertEquals(3, ratings.size());
+        assertEquals("Newest", ratings.get(0).getReviewText());
+        assertEquals("Older", ratings.get(1).getReviewText());
+        assertEquals("Oldest", ratings.get(2).getReviewText());
     }
 }

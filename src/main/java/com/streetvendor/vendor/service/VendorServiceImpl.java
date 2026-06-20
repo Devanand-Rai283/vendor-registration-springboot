@@ -9,6 +9,8 @@ import com.streetvendor.common.exception.ForbiddenException;
 import com.streetvendor.common.exception.ResourceNotFoundException;
 import com.streetvendor.common.exception.UnauthorizedException;
 import com.streetvendor.vendor.dto.CreateVendorRequest;
+import com.streetvendor.vendor.dto.UpdateVendorProfileRequest;
+import com.streetvendor.vendor.dto.VendorProfileResponseDto;
 import com.streetvendor.vendor.dto.VendorResponse;
 import com.streetvendor.vendor.dto.VendorStatusResponse;
 import com.streetvendor.vendor.entity.Vendor;
@@ -20,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
@@ -112,6 +115,67 @@ public class VendorServiceImpl implements VendorService {
     }
 
     @Override
+    public VendorProfileResponseDto getMyVendorProfile() {
+        Vendor vendor = getAuthenticatedVendor();
+        return mapToProfileDto(vendor);
+    }
+
+    @Override
+    @Transactional
+    public VendorProfileResponseDto updateMyVendorProfile(UpdateVendorProfileRequest request) {
+        Vendor vendor = getAuthenticatedVendor();
+
+        if (request.businessName() != null) vendor.setBusinessName(request.businessName());
+        if (request.ownerName() != null) vendor.setOwnerName(request.ownerName());
+        if (request.phone() != null) vendor.setPhone(request.phone());
+        if (request.foodType() != null) vendor.setFoodType(request.foodType());
+        if (request.description() != null) vendor.setDescription(request.description());
+        if (request.address() != null) vendor.setAddress(request.address());
+        if (request.latitude() != null) vendor.setLatitude(request.latitude());
+        if (request.longitude() != null) vendor.setLongitude(request.longitude());
+
+        Vendor savedVendor = vendorRepository.save(vendor);
+        return mapToProfileDto(savedVendor);
+    }
+
+    private Vendor getAuthenticatedVendor() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new UnauthorizedException("Not authenticated");
+        }
+
+        Object principal = authentication.getPrincipal();
+        if (!(principal instanceof User user)) {
+            throw new UnauthorizedException("Invalid authentication");
+        }
+
+        if (user.getRole() != Role.VENDOR) {
+            throw new ForbiddenException("Only vendors can access their vendor profile");
+        }
+
+        return vendorRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Vendor profile not found"));
+    }
+
+    private VendorProfileResponseDto mapToProfileDto(Vendor vendor) {
+        return new VendorProfileResponseDto(
+                vendor.getId(),
+                vendor.getBusinessName(),
+                vendor.getOwnerName(),
+                vendor.getPhone(),
+                vendor.getFoodType(),
+                vendor.getDescription(),
+                vendor.getAddress(),
+                vendor.getLatitude(),
+                vendor.getLongitude(),
+                vendor.getStatus(),
+                vendor.getAverageRating(),
+                vendor.getTotalReviews(),
+                vendor.getRejectionReason()
+        );
+    }
+
+    @Override
     public VendorResponse approveVendor(UUID vendorId) {
         Vendor vendor = vendorRepository.findById(vendorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Vendor not found"));
@@ -152,6 +216,12 @@ public class VendorServiceImpl implements VendorService {
                 "Vendor rejected successfully.",
                 savedVendor.getRejectionReason()
         );
+    }
+
+    @Override
+    public Vendor getVendorByUserId(UUID userId) {
+        return vendorRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Vendor profile not found for user"));
     }
 
     private UUID getCurrentAdminUserId() {

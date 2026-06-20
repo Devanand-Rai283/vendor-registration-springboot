@@ -1,5 +1,6 @@
 package com.streetvendor.admin.service;
 
+import com.streetvendor.admin.dto.AdminVendorDetailResponseDto;
 import com.streetvendor.admin.dto.AdminVendorSummaryDto;
 import com.streetvendor.vendor.enums.VendorStatus;
 import org.springframework.data.domain.Page;
@@ -27,4 +28,12 @@ public interface AdminVendorManagementService {
      * Reactivates a suspended vendor's account.
      */
     void reactivateVendor(UUID id, UUID adminUserId);
+
+    /**
+     * Retrieves full administrative details of a single vendor profile, including associated documents.
+     *
+     * @param vendorId the UUID of the vendor
+     * @return an {@link AdminVendorDetailResponseDto} containing detailed profile info and verification documents
+     */
+    AdminVendorDetailResponseDto getVendorDetails(UUID vendorId);
 }

@@ -45,6 +45,9 @@ public class VendorDocument extends AuditableEntity {
     @Column
     private Instant verifiedAt;
 
+    @Column(name = "rejection_reason", columnDefinition = "text")
+    private String rejectionReason;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "verified_by")
     private com.streetvendor.auth.entity.User verifiedBy;
@@ -111,5 +114,13 @@ public class VendorDocument extends AuditableEntity {
 
     public void setVerifiedBy(com.streetvendor.auth.entity.User verifiedBy) {
         this.verifiedBy = verifiedBy;
+    }
+
+    public String getRejectionReason() {
+        return rejectionReason;
+    }
+
+    public void setRejectionReason(String rejectionReason) {
+        this.rejectionReason = rejectionReason;
     }
 }
