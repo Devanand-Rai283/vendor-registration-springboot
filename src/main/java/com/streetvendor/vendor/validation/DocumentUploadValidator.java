@@ -1,6 +1,7 @@
 package com.streetvendor.vendor.validation;
 
 import com.streetvendor.vendor.enums.DocumentType;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.Set;
@@ -17,8 +18,19 @@ public class DocumentUploadValidator {
 
     private static final String PDF_MIME_TYPE = "application/pdf";
 
-    private static final long MAX_PDF_SIZE_BYTES = 5 * 1024 * 1024;
-    private static final long MAX_IMAGE_SIZE_BYTES = 2 * 1024 * 1024;
+    private final long maxPdfSizeBytes;
+    private final long maxImageSizeBytes;
+
+    public DocumentUploadValidator() {
+        this(5L, 2L);
+    }
+
+    public DocumentUploadValidator(
+            @Value("${security.max-file-size-pdf-mb:5}") long maxPdfSizeMb,
+            @Value("${security.max-file-size-image-mb:2}") long maxImageSizeMb) {
+        this.maxPdfSizeBytes = maxPdfSizeMb * 1024 * 1024;
+        this.maxImageSizeBytes = maxImageSizeMb * 1024 * 1024;
+    }
 
     public void validate(DocumentType fileType, String mimeType, Long fileSizeBytes) {
         if (fileType == null) {
@@ -41,12 +53,12 @@ public class DocumentUploadValidator {
             throw new IllegalArgumentException("Unsupported file type. Allowed types: PDF, JPG, JPEG, PNG.");
         }
 
-        if (PDF_MIME_TYPE.equals(mimeType) && fileSizeBytes > MAX_PDF_SIZE_BYTES) {
-            throw new IllegalArgumentException("PDF documents cannot exceed 5 MB.");
+        if (PDF_MIME_TYPE.equals(mimeType) && fileSizeBytes > maxPdfSizeBytes) {
+            throw new IllegalArgumentException("PDF documents cannot exceed " + (maxPdfSizeBytes / (1024 * 1024)) + " MB.");
         }
 
-        if (!PDF_MIME_TYPE.equals(mimeType) && fileSizeBytes > MAX_IMAGE_SIZE_BYTES) {
-            throw new IllegalArgumentException("Images cannot exceed 2 MB.");
+        if (!PDF_MIME_TYPE.equals(mimeType) && fileSizeBytes > maxImageSizeBytes) {
+            throw new IllegalArgumentException("Images cannot exceed " + (maxImageSizeBytes / (1024 * 1024)) + " MB.");
         }
     }
 }

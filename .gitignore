@@ -1,4 +1,11 @@
+# ==========================
+# Help
+# ==========================
 HELP.md
+
+# ==========================
+# Build
+# ==========================
 target/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
@@ -34,5 +41,23 @@ build/
 
 ### Environment ###
 .env
-.env.*
+.env.local
+.env.production
+.env.*.local
 !.env.example
+
+# ==========================
+# AI Agent Instructions
+# ==========================
+AGENTS.md
+CHATGPT.md
+CLAUDE.md
+GEMINI.md
+COPILOT.md
+BLACKBOX.md
+KILOOCDE.md
+OPENCODE.md
+HELP.md
+
+# AI Skills
+.skills/

@@ -1,0 +1,24 @@
+# Build outputs -- regenerated during docker build
+.next
+node_modules
+
+# Source control
+.git
+.github
+
+# Test coverage
+coverage
+
+# Environment files -- secrets must never enter the build context
+.env
+.env.*
+
+# Logs
+*.log
+
+# Editor/IDE artifacts
+.vscode
+.idea
+
+# OS artifacts
+.DS_Store

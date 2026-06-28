@@ -85,9 +85,11 @@
         </dependency>
 
         <!-- Database migrations using Flyway -->
+        <!-- spring-boot-starter-flyway is required in Spring Boot 4.x: -->
+        <!-- raw flyway-core alone no longer triggers FlywayAutoConfiguration -->
         <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-core</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-flyway</artifactId>
         </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>

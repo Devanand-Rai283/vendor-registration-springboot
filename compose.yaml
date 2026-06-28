@@ -1,0 +1,140 @@
+# =============================================================
+# compose.yaml -- Street Vendor Platform
+# Compose Specification (no version: key)
+# =============================================================
+# Start the full stack:
+#   docker compose up
+# Stop and remove containers:
+#   docker compose down
+# See DOCKER_COMPOSE.md for full documentation.
+# =============================================================
+
+name: streetvendor
+
+services:
+
+  # -----------------------------------------------------------
+  # PostgreSQL 17
+  # -----------------------------------------------------------
+  postgres:
+    image: postgres:17
+    container_name: streetvendor-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - streetvendor_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # -----------------------------------------------------------
+  # Redis 8
+  # -----------------------------------------------------------
+  redis:
+    image: redis:8
+    container_name: streetvendor-redis
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --requirepass
+      - ${REDIS_PASSWORD}
+      - --appendonly
+      - "yes"
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - streetvendor_network
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a $$REDIS_PASSWORD --no-auth-warning ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # -----------------------------------------------------------
+  # Spring Boot Backend
+  # -----------------------------------------------------------
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: streetvendor/backend:latest
+    container_name: streetvendor-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Override service-discovery values so Spring connects to
+      # the named Docker Compose services, not localhost.
+      DB_HOST: postgres
+      REDIS_HOST: redis
+      # In Docker Compose, Flyway owns the schema entirely.
+      # Setting ddl-auto=none prevents Hibernate from validating
+      # before Flyway has created the tables on a fresh database.
+      SPRING_JPA_HIBERNATE_DDL_AUTO: none
+    ports:
+      - "8080:8080"
+    networks:
+      - streetvendor_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      # /actuator/health/readiness checks db + redis probes
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8080/actuator/health/readiness"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  # -----------------------------------------------------------
+  # Next.js Frontend
+  # -----------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # NEXT_PUBLIC_* are baked into the client bundle at build time.
+        # Changing .env after the image is built has no effect.
+        # Rebuild the image when these values change.
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_RAZORPAY_KEY_ID: ${NEXT_PUBLIC_RAZORPAY_KEY_ID}
+    image: streetvendor/frontend:latest
+    container_name: streetvendor-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    networks:
+      - streetvendor_network
+    depends_on:
+      backend:
+        condition: service_started
+
+# =============================================================
+# Networks
+# =============================================================
+networks:
+  streetvendor_network:
+    driver: bridge
+
+# =============================================================
+# Volumes
+# =============================================================
+volumes:
+  postgres_data:
+  redis_data:

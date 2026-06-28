@@ -1,0 +1,29 @@
+# Version control & CI
+.git
+.github
+.gitignore
+
+# IDE / editor files
+.idea
+.vscode
+
+# Build artefacts
+target/
+node_modules
+
+# Secrets / env files
+.env
+.env.*
+
+# Docker configuration files (avoid copying into image)
+Dockerfile
+compose.yaml
+compose.yml
+
+# Documentation & misc
+README*
+README.md
+docs
+
+# Logs & temporary files
+*.log

@@ -1,10 +1,33 @@
 spring:
+  profiles:
+    active: ${APP_ENV:local}
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:street_vendor}}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
   data:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
-      ping-on-startup: false
+      ping-on-startup: ${REDIS_PING_ON_STARTUP:true}
+  flyway:
+    enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+server:
+  port: ${SERVER_PORT:8080}
+
+logging:
+  level:
+    root: ${LOG_LEVEL:INFO}
+    com.streetvendor: ${LOG_LEVEL:INFO}
+  structured:
+    format:
+      console: ${ENABLE_JSON_LOGGING:}
 
 account:
   lock:
@@ -43,3 +66,24 @@ razorpay:
   key-secret: ${RAZORPAY_KEY_SECRET}
   webhook-secret: ${RAZORPAY_WEBHOOK_SECRET}
   tolerance-seconds: ${RAZORPAY_WEBHOOK_TOLERANCE_SECONDS:300}
+
+r2:
+  access-key: ${R2_ACCESS_KEY}
+  secret-key: ${R2_SECRET_KEY}
+  bucket-name: ${R2_BUCKET_NAME}
+  region: ${R2_REGION:auto}
+  endpoint: ${R2_ENDPOINT}
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-expiration: ${JWT_ACCESS_EXPIRATION:3600000}
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION:7}
+
+security:
+  max-file-size-pdf-mb: ${MAX_FILE_SIZE_PDF_MB:5}
+  max-file-size-image-mb: ${MAX_FILE_SIZE_IMAGE_MB:2}
+  cors-allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+
+admin:
+  email: ${ADMIN_EMAIL}
+  password: ${ADMIN_PASSWORD}

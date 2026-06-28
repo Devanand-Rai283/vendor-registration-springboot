@@ -109,9 +109,9 @@ export default function VendorDocumentsPage() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       {doc.viewUrl ? (
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
+                        <Button
+                          variant="outline"
+                          size="sm"
                           className="h-8 gap-1.5"
                           onClick={() => window.open(doc.viewUrl!, "_blank")}
                         >
@@ -131,11 +131,11 @@ export default function VendorDocumentsPage() {
           </div>
         </CardContent>
       </Card>
-      
+
       <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 flex gap-3 text-sm text-blue-800">
         <ShieldCheck className="h-5 w-5 text-blue-600 shrink-0" />
         <p>
-          Your documents are securely stored. Temporary view links expire after 15 minutes. 
+          Your documents are securely stored. Temporary view links expire after 15 minutes.
           If a document shows as <span className="font-semibold text-amber-700">Unavailable</span>, our secure storage service may be temporarily degraded. Please try again later.
         </p>
       </div>
