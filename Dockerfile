@@ -5,11 +5,13 @@ WORKDIR /app
 # Cache Maven dependencies
 COPY .mvn/ .mvn/
 COPY mvnw pom.xml ./
-RUN ./mvnw -B dependency:go-offline
+RUN chmod +x mvnw && \
+    ./mvnw -B dependency:go-offline
 
 # Copy source and build the JAR (skip tests)
 COPY src ./src
-RUN ./mvnw -B clean package -DskipTests
+RUN chmod +x mvnw && \
+    ./mvnw -B clean package -DskipTests
 
 # Rename built JAR to deterministic name
 RUN cp target/*.jar app.jar
