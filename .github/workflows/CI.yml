@@ -23,11 +23,35 @@ jobs:
       - name: Give permission to mvnw
         run: chmod +x mvnw
 
-      - name: Build with Maven
-        run: ./mvnw clean install
+      - name: Build and Verify with Maven
+        # Run clean verify to avoid duplicate execution and enable verbose diagnostics
+        run: ./mvnw clean verify -e -X -DtrimStackTrace=false
 
-      - name: Run Tests
-        run: ./mvnw test
+      - name: Upload Test Reports
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-reports
+          path: |
+            **/target/surefire-reports/**
+            **/target/failsafe-reports/**
+          retention-days: 7
+
+      - name: Print Test Report Contents
+        if: failure()
+        run: |
+          echo "=== Printing Surefire and Failsafe Reports ==="
+          for dir in target/surefire-reports target/failsafe-reports; do
+            if [ -d "$dir" ]; then
+              echo "Searching $dir..."
+              find "$dir" \( -name "*.txt" -o -name "*.xml" \) -print | while read -r file; do
+                echo "--- $file ---"
+                cat "$file"
+              done
+            else
+              echo "Directory $dir does not exist, skipping."
+            fi
+          done
 
 
   deploy:
