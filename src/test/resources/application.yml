@@ -1,0 +1,115 @@
+# Test-scoped application.yml
+#
+# PURPOSE
+# -------
+# Includes base configuration from src/main/resources/application.yml
+# to prevent shadowing of default properties like analytics.cron-expression.
+# Unconditionally includes the shared ci-test profile using spring.profiles.include
+# so that every domain-specific test profile automatically receives the shared dummy credentials
+# without causing circular profile group suppression.
+#
+# The ci-test profile (application-ci-test.yml) provides ONLY the mandatory
+# dummy credentials required for Spring context startup in CI and local test
+# runs:
+#
+#   razorpay.key-id: test-razorpay-key-id
+#   razorpay.key-secret: test-razorpay-key-secret
+#   razorpay.webhook-secret: test-webhook-secret
+#   admin.email / admin.password
+#
+# SCOPE
+# -----
+# This file is ONLY present in src/test/resources.
+# It is NOT on the production classpath.
+# Production startup behaviour is entirely unchanged.
+
+spring:
+  profiles:
+    active: ${APP_ENV:local}
+    include: ci-test
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:street_vendor}}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      ping-on-startup: ${REDIS_PING_ON_STARTUP:true}
+  flyway:
+    enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+server:
+  port: ${SERVER_PORT:8080}
+
+logging:
+  level:
+    root: ${LOG_LEVEL:INFO}
+    com.streetvendor: ${LOG_LEVEL:INFO}
+  structured:
+    format:
+      console: ${ENABLE_JSON_LOGGING:}
+
+account:
+  lock:
+    threshold: ${ACCOUNT_LOCK_THRESHOLD:5}
+    duration-minutes: ${ACCOUNT_LOCK_DURATION_MINUTES:15}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: db,redis
+          show-details: never
+  health:
+    redis:
+      enabled: true
+
+discovery:
+  cache:
+    vendor-search-ttl: 600
+    vendor-menu-ttl: 900
+
+analytics:
+  cron-expression: ${ANALYTICS_CRON_EXPRESSION:0 0 1 * * *}
+  timezone: ${ANALYTICS_TIMEZONE:UTC}
+
+razorpay:
+  key-id: ${RAZORPAY_KEY_ID}
+  key-secret: ${RAZORPAY_KEY_SECRET}
+  webhook-secret: ${RAZORPAY_WEBHOOK_SECRET}
+  tolerance-seconds: ${RAZORPAY_WEBHOOK_TOLERANCE_SECONDS:300}
+
+r2:
+  access-key: ${R2_ACCESS_KEY}
+  secret-key: ${R2_SECRET_KEY}
+  bucket-name: ${R2_BUCKET_NAME}
+  region: ${R2_REGION:auto}
+  endpoint: ${R2_ENDPOINT}
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-expiration: ${JWT_ACCESS_EXPIRATION:3600000}
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION:7}
+
+security:
+  max-file-size-pdf-mb: ${MAX_FILE_SIZE_PDF_MB:5}
+  max-file-size-image-mb: ${MAX_FILE_SIZE_IMAGE_MB:2}
+  cors-allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+
+admin:
+  email: ${ADMIN_EMAIL}
+  password: ${ADMIN_PASSWORD}

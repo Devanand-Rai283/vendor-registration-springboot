@@ -1,0 +1,27 @@
+# CI test credentials
+#
+# This file provides the mandatory credentials and default values required
+# for Spring context startup in CI and local test runs where domain-specific
+# test profiles are active.
+#
+# It deliberately does NOT configure datasource, Flyway, or Redis.
+# Those settings are provided by each domain-specific profile YAML.
+#
+# This file is included automatically by the profile groups defined in
+# src/test/resources/application.yml.
+#
+# SECURITY: All values here are non-secret dummies for testing only.
+# Real secrets are injected via environment variables in production.
+
+razorpay:
+  key-id: test-razorpay-key-id
+  key-secret: test-razorpay-key-secret
+  webhook-secret: test-webhook-secret
+
+analytics:
+  cron-expression: 0 0 1 * * *
+  timezone: UTC
+
+admin:
+  email: admin@test.com
+  password: TestAdmin123!
