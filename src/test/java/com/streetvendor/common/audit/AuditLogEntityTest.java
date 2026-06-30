@@ -16,7 +16,7 @@ class AuditLogEntityTest {
         UUID adminId = UUID.randomUUID();
         AuditEventType eventType = AuditEventType.VENDOR_APPROVED;
 
-        AuditLog auditLog = new AuditLog(id, eventType, vendorId, adminId, null);
+        AuditLog auditLog = new AuditLog(id, eventType, vendorId, adminId, null, null);
 
         assertEquals(id, auditLog.getId());
         assertEquals(eventType, auditLog.getEventType());
@@ -31,7 +31,7 @@ class AuditLogEntityTest {
         UUID vendorId = UUID.randomUUID();
         UUID adminId = UUID.randomUUID();
 
-        AuditLog auditLog = new AuditLog(id, AuditEventType.VENDOR_REJECTED, vendorId, adminId, "Expired FSSAI certificate");
+        AuditLog auditLog = new AuditLog(id, AuditEventType.VENDOR_REJECTED, vendorId, adminId, null, "Expired FSSAI certificate");
 
         assertEquals("Expired FSSAI certificate", auditLog.getDetails());
     }
@@ -41,7 +41,7 @@ class AuditLogEntityTest {
         UUID id = UUID.randomUUID();
         UUID vendorId = UUID.randomUUID();
 
-        AuditLog auditLog = new AuditLog(id, AuditEventType.VENDOR_APPROVED, vendorId, null, null);
+        AuditLog auditLog = new AuditLog(id, AuditEventType.VENDOR_APPROVED, vendorId, null, null, null);
 
         assertNull(auditLog.getAdminUserId());
     }

@@ -21,8 +21,11 @@ public class AuditLog extends AuditableEntity {
     @Column(name = "event_type", nullable = false, length = 50)
     private AuditEventType eventType;
 
-    @Column(name = "vendor_id", nullable = false, columnDefinition = "uuid")
+    @Column(name = "vendor_id", columnDefinition = "uuid")
     private UUID vendorId;
+
+    @Column(name = "user_id", columnDefinition = "uuid")
+    private UUID userId;
 
     @Column(name = "admin_user_id", columnDefinition = "uuid")
     private UUID adminUserId;
@@ -33,11 +36,12 @@ public class AuditLog extends AuditableEntity {
     protected AuditLog() {
     }
 
-    public AuditLog(UUID id, AuditEventType eventType, UUID vendorId, UUID adminUserId, String details) {
+    public AuditLog(UUID id, AuditEventType eventType, UUID vendorId, UUID adminUserId, UUID userId, String details) {
         this.id = id;
         this.eventType = eventType;
         this.vendorId = vendorId;
         this.adminUserId = adminUserId;
+        this.userId = userId;
         this.details = details;
     }
 
@@ -59,5 +63,9 @@ public class AuditLog extends AuditableEntity {
 
     public String getDetails() {
         return details;
+    }
+
+    public UUID getUserId() {
+        return userId;
     }
 }

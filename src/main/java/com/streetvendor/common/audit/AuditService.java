@@ -21,6 +21,7 @@ public class AuditService {
                 eventType,
                 vendorId,
                 adminUserId,
+                null,
                 details
         );
         auditLogRepository.save(auditLog);
@@ -31,8 +32,9 @@ public class AuditService {
         AuditLog auditLog = new AuditLog(
                 UUID.randomUUID(),
                 eventType,
-                subjectId,
                 null,
+                null,
+                subjectId,
                 details
         );
         auditLogRepository.save(auditLog);

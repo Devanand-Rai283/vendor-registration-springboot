@@ -11,6 +11,12 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+## Scratch_Smoke_Test##
+scratch/
+
+## ticket_raise##
+tickets/
+
 ### STS ###
 .apt_generated
 .classpath

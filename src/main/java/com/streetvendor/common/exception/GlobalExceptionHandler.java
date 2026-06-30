@@ -19,6 +19,9 @@ import com.streetvendor.order.exception.OrderCancellationNotAllowedException;
 import com.streetvendor.security.lockout.AccountLockedException;
 import com.streetvendor.security.ratelimit.RateLimitExceededException;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -121,6 +124,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiErrorResponse> handleException(Exception ex, HttpServletRequest request) {
+        log.error("Unhandled exception occurred while processing request: {}", request.getRequestURI(), ex);
         ApiErrorResponse body = new ApiErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Something went wrong. Please try again later.", request.getRequestURI());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
