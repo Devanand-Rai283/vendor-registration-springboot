@@ -85,8 +85,8 @@ projects:
             autoDeployTrigger: commit
         databases:
           - name: vendor-db
-            databaseName: vendor_db_atlv
-            user: vendordb_seec_user
+            databaseName: vendor_db_ic0g
+            user: vendor_db_ic0g_user
             plan: free
             region: singapore
             postgresMajorVersion: "18"
