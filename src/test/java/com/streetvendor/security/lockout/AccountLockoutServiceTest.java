@@ -110,7 +110,10 @@ class AccountLockoutServiceTest {
     @Test
     void shouldMaintainRollingTtl() throws InterruptedException {
         lockoutService.recordFailedAttempt(EMAIL);
-        TimeUnit.SECONDS.sleep(1);
+        
+        // Redis reports TTL in whole seconds. GitHub Actions timing varies.
+        // A longer delay (2 seconds) prevents flaky assertions.
+        TimeUnit.SECONDS.sleep(2);
         long ttlAfterSleep = lockoutService.getRemainingLockDurationSeconds(EMAIL);
 
         lockoutService.recordFailedAttempt(EMAIL);
