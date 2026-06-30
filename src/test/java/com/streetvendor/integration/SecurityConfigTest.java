@@ -4,8 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
 import com.streetvendor.auth.entity.AccountStatus;
 import com.streetvendor.auth.entity.Role;
@@ -23,8 +25,11 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.test.context.TestPropertySource;
+
 @ActiveProfiles("security-test")
 @Transactional
+@TestPropertySource(properties = "security.cors-allowed-origins=https://streetvendor-frontend.onrender.com")
 class SecurityConfigTest extends AbstractSecurityTest {
 
     @Autowired
@@ -209,6 +214,39 @@ class SecurityConfigTest extends AbstractSecurityTest {
         mockMvc.perform(get("/test/protected")
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Authorization", "Bearer " + validToken))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void corsShouldAllowConfiguredOriginOnPublicEndpoint() throws Exception {
+        mockMvc.perform(options("/api/vendors/nearby")
+                        .header("Origin", "https://streetvendor-frontend.onrender.com")
+                        .header("Access-Control-Request-Method", "GET"))
+                .andExpect(status().isOk())
+                .andExpect(header().exists("Access-Control-Allow-Origin"))
+                .andExpect(header().string("Access-Control-Allow-Origin", "https://streetvendor-frontend.onrender.com"))
+                .andExpect(header().string("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS"))
+                .andExpect(header().string("Access-Control-Allow-Credentials", "true"));
+    }
+
+    @Test
+    void corsShouldRejectDisallowedOrigin() throws Exception {
+        mockMvc.perform(options("/api/vendors/nearby")
+                        .header("Origin", "https://evil.example.com")
+                        .header("Access-Control-Request-Method", "GET"))
+                // Spring Security CORS filter does not typically block the request with 403 for disallowed origins in the preflight, 
+                // but it does omit the Access-Control-Allow-Origin header. So we just verify the header is missing.
+                // Wait, it might return 403 based on configuration. Let's check status is 403 or headers missing.
+                // Normally it returns 403 Invalid CORS request.
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void publicEndpointShouldRemainAccessible() throws Exception {
+        mockMvc.perform(get("/api/vendors/nearby")
+                        .param("lat", "12.34")
+                        .param("lng", "56.78")
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
     }
 }

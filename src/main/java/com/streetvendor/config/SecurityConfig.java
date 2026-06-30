@@ -8,16 +8,21 @@ import com.streetvendor.security.CustomAuthenticationEntryPoint;
 import com.streetvendor.security.JwtAuthenticationFilter;
 import com.streetvendor.security.ratelimit.RateLimitingFilter;
 import java.util.Arrays;
+import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 @EnableWebSecurity
@@ -38,6 +43,7 @@ public class SecurityConfig {
         @Bean
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
                 var auth = http
+                                .cors(Customizer.withDefaults())
                                 .csrf(AbstractHttpConfigurer::disable)
                                 .sessionManagement(session -> session
                                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -114,5 +120,34 @@ public class SecurityConfig {
         @Bean
         public CustomAccessDeniedHandler customAccessDeniedHandler(ObjectMapper securityObjectMapper) {
                 return new CustomAccessDeniedHandler(securityObjectMapper);
+        }
+
+        @Bean
+        public CorsConfigurationSource corsConfigurationSource() {
+                CorsConfiguration configuration = new CorsConfiguration();
+                String originsProperty = environment.getProperty("security.cors-allowed-origins");
+                
+                if (originsProperty == null || originsProperty.trim().isEmpty()) {
+                        throw new IllegalStateException("No CORS origins configured. Configure security.cors-allowed-origins (CORS_ALLOWED_ORIGINS) before starting the application.");
+                }
+
+                List<String> origins = Arrays.stream(originsProperty.split(","))
+                                .map(String::trim)
+                                .filter(s -> !s.isEmpty())
+                                .toList();
+
+                if (origins.isEmpty()) {
+                        throw new IllegalStateException("No CORS origins configured. Configure security.cors-allowed-origins (CORS_ALLOWED_ORIGINS) before starting the application.");
+                }
+
+                configuration.setAllowedOrigins(origins);
+
+                configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+                configuration.setAllowedHeaders(Arrays.asList("*"));
+                configuration.setAllowCredentials(true);
+
+                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+                source.registerCorsConfiguration("/**", configuration);
+                return source;
         }
 }
