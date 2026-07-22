@@ -52,8 +52,10 @@ export function LoginForm({ sessionExpired = false }: LoginFormProps) {
       await authService.login(data.email, data.password);
       const role = useAuthStore.getState().role;
 
-      // Role Routing: CUSTOMER -> /, VENDOR -> /vendor/onboarding, ADMIN -> /
-      if (role === "VENDOR") {
+      // Role Routing: ADMIN -> /admin, VENDOR -> /vendor/onboarding, CUSTOMER -> /
+      if (role === "ADMIN") {
+        router.push("/admin");
+      } else if (role === "VENDOR") {
         router.push("/vendor/onboarding");
       } else {
         router.push("/");

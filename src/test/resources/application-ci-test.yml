@@ -25,3 +25,13 @@ analytics:
 admin:
   email: admin@test.com
   password: TestAdmin123!
+
+# Disable the bootstrap admin seeder during automated tests.
+# DataInitializer is guarded by @ConditionalOnProperty(name = "bootstrap.admin.enabled").
+# Setting this to false prevents it from being registered as a Spring bean,
+# so no ADMIN row is inserted before test @BeforeEach methods run.
+# This does not affect production — matchIfMissing=true keeps the bean active
+# in all environments where this file is absent.
+bootstrap:
+  admin:
+    enabled: false
